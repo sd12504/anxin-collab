@@ -1,19 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../hooks/useStore';
 import { generatePlanningMarkdown, generateProductionPackMarkdown, generateSocialCopyMarkdown, generateShotListMarkdown, generateEditingBriefMarkdown } from '../utils/markdown';
 import { generatePlanningDraft, generateSocialCopy, generateEditingBrief, isValidPlanningDraft, isValidProductionContent } from '../services/aiService';
 import { generateScript } from '../services/ai';
 import { computeGrade } from '../utils/grading';
+import type { SocialCopy, EditingBrief } from '../types';
 
 export default function ExportCenter() {
   const { cases, editingId, setEditingId, brandSettings } = useStore();
   const current = editingId ? cases.find(c => c.id === editingId) : null;
 
+  const mounted = useRef(false);
+
   useEffect(() => {
-    if (!editingId && cases.length > 0) {
+    if (!mounted.current && !editingId && cases.length > 0) {
       setEditingId(cases[0].id);
     }
-  }, [editingId, cases, setEditingId]);
+    mounted.current = true;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!current) {
     return (
@@ -80,7 +84,7 @@ export default function ExportCenter() {
       status: '可下載',
       action: async () => {
         const edt = await generateEditingBrief(current, [], grade);
-        download(generateEditingBriefMarkdown(current, edt, current.aiProductionContent), `${current.name}_剪輯工作單`);
+        download(generateEditingBriefMarkdown(current, edt as EditingBrief | null, current.aiProductionContent), `${current.name}_剪輯工作單`);
       },
     },
     {
@@ -105,7 +109,7 @@ export default function ExportCenter() {
       status: '可下載',
       action: async () => {
         const social = await generateSocialCopy(current, brandSettings);
-        download(generateSocialCopyMarkdown(current, social), `${current.name}_社群文案`);
+        download(generateSocialCopyMarkdown(current, social as SocialCopy | null), `${current.name}_社群文案`);
       },
     },
     {

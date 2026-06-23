@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStore } from '../hooks/useStore';
 import { computeGrade, getCompletion, getGradeOutput } from '../utils/grading';
 import { generateProductionContent, isValidProductionContent } from '../services/aiService';
@@ -12,11 +12,14 @@ export default function ProductionTools() {
   const [content, setContent] = useState<AiProductionResult | null>(null);
   const [aiStatus, setAiStatus] = useState<AiStatus>('idle');
 
+  const mounted = useRef(false);
+
   useEffect(() => {
-    if (!editingId && cases.length > 0) {
+    if (!mounted.current && !editingId && cases.length > 0) {
       setEditingId(cases[0].id);
     }
-  }, [editingId, cases, setEditingId]);
+    mounted.current = true;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-generate all content when current case changes
   const generateAll = useCallback(async () => {
@@ -266,7 +269,7 @@ export default function ProductionTools() {
       </div>
 
       {/* Sticky action bar */}
-      <div className="sticky bottom-0 mt-5 -mx-4 lg:-mx-8 px-4 lg:px-8 py-3 bg-white border-t border-warm-300 flex justify-between items-center gap-3">
+      <div className="sticky bottom-0 mt-5 -mx-4 lg:-mx-8 px-4 lg:px-8 py-3 bg-beige-50 border-t border-warm-200 flex justify-between items-center gap-3">
         <span className="text-xs text-gray-400 hidden sm:inline">內容依目前案場資料自動產生，可隨時更新</span>
         <div className="flex gap-2">
           <button className="btn btn-primary" onClick={handleRefresh} disabled={aiStatus === 'loading'}>

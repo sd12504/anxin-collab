@@ -4,6 +4,7 @@ import { computeGrade, getJudgmentReasons, getGradePositioning, getGradeOutput, 
 import { generatePlanningDraft, isValidPlanningDraft } from '../services/aiService';
 import { generatePlanningMarkdown } from '../utils/markdown';
 import type { CaseData, AiPlanningResult, AiStatus } from '../types';
+import { Combobox } from '../components/ui/Combobox';
 
 export default function CollabBoard() {
   const { cases, editingId, setEditingId, updateCase, brandSettings } = useStore();
@@ -12,12 +13,13 @@ export default function CollabBoard() {
   const [aiStatus, setAiStatus] = useState<AiStatus>('idle');
   const [mobileTab, setMobileTab] = useState<'cases' | 'form' | 'preview'>('form');
 
-  // Auto-select first case
+  // Auto-select first case on mount only
   useEffect(() => {
     if (!editingId && cases.length > 0) {
       setEditingId(cases[0].id);
     }
-  }, [editingId, cases, setEditingId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-generate preview draft when current case changes
   useEffect(() => {
@@ -125,11 +127,7 @@ export default function CollabBoard() {
       {/* Before/After */}
       <fieldset className="mb-3 border-0 p-0">
         <legend className="label">3. 有沒有明顯 Before／After 反差？</legend>
-        <select className="input mb-1" value={current.beforeAfter} onChange={e => update({ beforeAfter: e.target.value as '有' | '普通' | '沒有' })} aria-label="Before After 反差狀態">
-          <option value="有">有</option>
-          <option value="普通">普通</option>
-          <option value="沒有">沒有</option>
-        </select>
+        <Combobox items={['有', '普通', '沒有'] as const} value={current.beforeAfter} onChange={v => update({ beforeAfter: v as '有' | '普通' | '沒有' })} />
         <textarea className="input mt-1" rows={2} value={current.beforeAfterNote} onChange={e => update({ beforeAfterNote: e.target.value })} placeholder="說明反差細節" aria-label="反差說明" />
       </fieldset>
 
@@ -227,9 +225,9 @@ export default function CollabBoard() {
   return (
     <>
       {/* Desktop / Tablet: 3-column grid, collapses to 2 on tablet, 1 on mobile */}
-      <div className="hidden lg:grid lg:grid-cols-[260px_1fr_400px] h-[calc(100vh-52px)]">
+      <div className="hidden lg:grid lg:grid-cols-[260px_1fr_400px] h-screen">
         {/* Left: Case List */}
-        <div className="bg-white border-r border-warm-300 overflow-y-auto p-5">
+        <div className="bg-beige-50 border-r border-warm-200 overflow-y-auto p-5">
           <div className="font-semibold text-sm mb-3 pb-2 border-b-2 border-olive-100 flex justify-between">
             案件總覽
             <span className="text-xs text-gray-400 font-normal">{cases.length} 件</span>
@@ -238,13 +236,13 @@ export default function CollabBoard() {
         </div>
 
         {/* Center: Form */}
-        <div className="bg-white border-r border-warm-300 overflow-y-auto p-6">
+        <div className="bg-beige-50 border-r border-warm-200 overflow-y-auto p-6">
           <FormContent />
           <ActionButtons />
         </div>
 
         {/* Right: Preview */}
-        <div className="bg-white overflow-y-auto p-6">
+        <div className="bg-beige-50 overflow-y-auto p-6">
           <div className="font-semibold text-sm mb-3 pb-2 border-b-2 border-olive-100">影像企劃預覽</div>
           <PreviewContent />
           {draft && (
@@ -254,9 +252,9 @@ export default function CollabBoard() {
       </div>
 
       {/* ===== MOBILE / TABLET LAYOUT (<lg) ===== */}
-      <div className="lg:hidden flex flex-col min-h-[calc(100vh-52px)]">
+      <div className="lg:hidden flex flex-col min-h-screen">
         {/* Segmented tab control */}
-        <div className="sticky top-0 z-30 bg-white border-b border-warm-200 px-3 py-2">
+        <div className="sticky top-0 z-30 bg-beige-50 border-b border-warm-200 px-3 py-2">
           <div className="flex bg-warm-100 rounded-lg p-0.5">
             {([
               { key: 'cases' as const, label: '案件', count: cases.length },
@@ -316,7 +314,7 @@ export default function CollabBoard() {
         )}
 
         {/* Sticky action bar */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-warm-300 px-4 py-3 z-30 lg:hidden">
+        <div className="fixed bottom-0 left-0 right-0 bg-beige-50 border-t border-warm-200 px-4 py-3 z-30 lg:hidden">
           <div className="flex gap-2">
             <button
               className="btn btn-primary flex-1 text-sm py-2.5"
@@ -348,13 +346,10 @@ function FormField({ id, label, value, onChange }: { id: string; label: string; 
 }
 
 function SelectField({ label, value, opts, onChange }: { label: string; value: string; opts: string[]; onChange: (v: string) => void }) {
-  const id = `sel-${label.replace(/\s/g, '')}`;
   return (
     <div>
-      <label className="label" htmlFor={id}>{label}</label>
-      <select id={id} className="input" value={value} onChange={e => onChange(e.target.value)}>
-        {opts.map(o => <option key={o}>{o}</option>)}
-      </select>
+      <label className="label">{label}</label>
+      <Combobox items={opts as unknown as readonly string[]} value={value} onChange={onChange as (v: string) => void} />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useStore } from '../hooks/useStore';
 import { computeGrade } from '../utils/grading';
 import type { CaseData, CaseStage, Shootable, HouseCondition } from '../types';
 import CaseModal from '../components/CaseModal';
+import { Combobox } from '../components/ui/Combobox';
 
 export default function CaseManagement() {
   const { cases, addCase, updateCase, deleteCase, setEditingId } = useStore();
@@ -48,10 +49,7 @@ export default function CaseManagement() {
       <div className="flex justify-between items-center mb-5">
         <h2 className="font-serif text-xl">案例管理</h2>
         <div className="flex gap-3">
-          <select className="input w-auto" value={filterStage} onChange={e => setFilterStage(e.target.value)}>
-            <option value="all">所有階段</option>
-            {stages.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          <Combobox items={['所有階段', ...stages]} value={filterStage === 'all' ? '所有階段' : filterStage} onChange={v => setFilterStage(v === '所有階段' ? 'all' : v)} className="w-32" />
           <button className="btn btn-primary" onClick={openNew}>＋ 新案場</button>
         </div>
       </div>

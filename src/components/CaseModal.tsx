@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { CaseData, CaseStage, Shootable, HouseCondition, ShootStatus } from '../types';
 import { useStore } from '../hooks/useStore';
+import { Combobox } from './ui/Combobox';
+import { motion } from 'framer-motion';
 
 interface Props {
   editId: string | null;
@@ -49,8 +51,22 @@ export default function CaseModal({ editId, onSave, onClose }: Props) {
   const shootStatuses: ShootStatus[] = ['未安排', '準備中', '拍攝中', '已拍攝', '剪輯中', '已完成'];
 
   return (
-    <div className="fixed inset-0 bg-black/25 z-50 flex items-center justify-center" onClick={onClose}>
-      <div className="bg-white rounded-lg p-7 max-w-lg w-[90%] max-h-[85vh] overflow-y-auto shadow-xl" onClick={e => e.stopPropagation()}>
+    <motion.div
+      className="fixed inset-0 bg-black/25 z-50 flex items-center justify-center"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+    >
+      <motion.div
+        className="bg-white rounded-lg p-7 max-w-lg w-[90%] max-h-[85vh] overflow-y-auto shadow-xl"
+        onClick={e => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.95, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 12 }}
+        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+      >
         <div className="flex justify-between items-center mb-5">
           <h3 className="font-serif text-lg">{editId ? '編輯案場' : '新增案場'}</h3>
           <button className="text-gray-400 hover:text-gray-600 text-xl" onClick={onClose}>&times;</button>
@@ -65,12 +81,12 @@ export default function CaseModal({ editId, onSave, onClose }: Props) {
             <div><label className="label">坪數</label><input className="input" value={area} onChange={e => setArea(e.target.value)} placeholder="例：32" /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="label">屋況</label><select className="input" value={houseCondition} onChange={e => setHouseCondition(e.target.value as HouseCondition)}>{houseConditions.map(h => <option key={h}>{h}</option>)}</select></div>
+            <div><label className="label">屋況</label><Combobox items={houseConditions} value={houseCondition} onChange={v => setHouseCondition(v as HouseCondition)} /></div>
             <div><label className="label">設計風格</label><input className="input" value={designStyle} onChange={e => setDesignStyle(e.target.value)} placeholder="例：現代簡約" /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="label">案件階段</label><select className="input" value={stage} onChange={e => setStage(e.target.value as CaseStage)}>{stages.map(s => <option key={s}>{s}</option>)}</select></div>
-            <div><label className="label">拍攝狀態</label><select className="input" value={shootStatus} onChange={e => setShootStatus(e.target.value as ShootStatus)}>{shootStatuses.map(s => <option key={s}>{s}</option>)}</select></div>
+            <div><label className="label">案件階段</label><Combobox items={stages} value={stage} onChange={v => setStage(v as CaseStage)} /></div>
+            <div><label className="label">拍攝狀態</label><Combobox items={shootStatuses} value={shootStatus} onChange={v => setShootStatus(v as ShootStatus)} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="label">攝影</label><input className="input" value={photographer} onChange={e => setPhotographer(e.target.value)} /></div>
@@ -94,7 +110,7 @@ export default function CaseModal({ editId, onSave, onClose }: Props) {
             <button type="submit" className="btn btn-primary">儲存</button>
           </div>
         </form>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

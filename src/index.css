@@ -3,35 +3,64 @@
 @tailwind utilities;
 
 @layer base {
-  html { font-size: 15px; }
+  html { font-size: 16px; }
   body {
-    @apply font-sans text-gray-800 bg-warm-50 min-h-screen;
+    @apply font-sans text-gray-800 bg-beige-100 min-h-screen;
+    font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, .font-serif {
+    font-family: 'Noto Serif TC', 'PMingLiU', 'Songti TC', Georgia, serif;
+    font-weight: 700;
+  }
+  button, input, textarea, select {
+    font-family: inherit;
   }
 }
 
 @layer components {
+  .app-shell {
+    @apply relative overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#fffaf1_0,#f8f4ec_34%,#f3efe6_100%)];
+  }
+  .app-grid-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(66, 81, 39, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(66, 81, 39, 0.045) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.25));
+  }
   .card {
-    @apply bg-white border border-warm-300 rounded-lg;
+    @apply bg-white/80 border border-white/70 rounded-lg shadow-[0_14px_45px_rgba(66,57,39,0.07)] backdrop-blur
+           transition-all duration-300 hover:shadow-[0_18px_52px_rgba(66,57,39,0.1)] hover:-translate-y-0.5;
   }
   .btn {
-    @apply font-sans text-sm px-4 py-2 rounded border border-warm-300 bg-white
-           hover:bg-olive-50 hover:border-olive-400 transition-colors
-           cursor-pointer whitespace-nowrap;
+    @apply font-sans text-sm px-4 py-2 rounded border border-warm-300 bg-white/80
+           hover:bg-olive-50 hover:border-olive-400
+           active:scale-[0.97]
+           transition-all duration-150
+           cursor-pointer whitespace-nowrap text-gray-700;
   }
   .btn-primary {
-    @apply bg-olive-500 text-white border-olive-500 font-semibold
-           hover:bg-olive-600 hover:border-olive-600;
+    @apply bg-olive-600 text-white border-olive-600 font-semibold
+           hover:bg-olive-700 hover:border-olive-700 hover:shadow-lg
+           active:scale-[0.97];
   }
   .btn-sm { @apply text-xs px-3 py-1.5; }
   .btn-danger { @apply text-red-600 hover:bg-red-50 hover:border-red-300; }
   .input {
-    @apply w-full px-3 py-2 border border-warm-300 rounded bg-warm-50
+    @apply w-full px-3 py-2 border border-warm-300 rounded bg-white/85
            focus:outline-none focus:border-olive-400 focus:ring-2 focus:ring-olive-100
-           font-sans text-sm;
+           font-sans text-sm
+           transition-all duration-150;
   }
   .label { @apply block text-xs text-gray-500 mb-1 font-medium; }
   .section-title {
-    @apply font-semibold text-xs text-olive-500 mb-2 pb-1.5 border-b border-warm-200
+    @apply font-semibold text-xs text-olive-600 mb-2 pb-1.5 border-b border-warm-200
            tracking-wide;
   }
   .badge {
@@ -43,9 +72,10 @@
   .badge-d { @apply bg-stone-100 text-stone-600; }
 
   .preview-block {
-    @apply bg-olive-50 border border-warm-200 rounded p-4 mb-3;
+    @apply bg-white/70 border border-white/80 rounded p-4 mb-3 shadow-[0_8px_28px_rgba(66,57,39,0.055)]
+           transition-all duration-200;
   }
   .preview-block h4 {
-    @apply text-xs text-olive-500 mb-2 font-semibold tracking-wide;
+    @apply text-xs text-olive-600 mb-2 font-semibold tracking-wide;
   }
 }
