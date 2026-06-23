@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import { initDB, getAllCases, getCaseById, upsertCase, deleteCaseById } from './db.js';
 
 console.log('Starting anxin-ai-proxy...');
 console.log('PORT:', process.env.PORT || '8787');
@@ -26,6 +27,24 @@ app.use(express.json({ limit: '100kb' }));
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'anxin-ai-proxy' });
+});
+
+// ===== Case CRUD =====
+app.get('/api/cases', async (_req, res) => {
+  try { res.json(await getAllCases()); } catch { res.status(500).json({ error: 'Failed' }); }
+});
+app.get('/api/cases/:id', async (req, res) => {
+  try {
+    const c = await getCaseById(req.params.id);
+    if (!c) return res.status(404).json({ error: 'Not found' });
+    res.json(c);
+  } catch { res.status(500).json({ error: 'Failed' }); }
+});
+app.put('/api/cases/:id', async (req, res) => {
+  try { await upsertCase(req.params.id, req.body); res.json({ ok: true }); } catch { res.status(500).json({ error: 'Failed' }); }
+});
+app.delete('/api/cases/:id', async (req, res) => {
+  try { await deleteCaseById(req.params.id); res.json({ ok: true }); } catch { res.status(500).json({ error: 'Failed' }); }
 });
 
 const SCHEMAS = {
