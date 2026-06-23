@@ -140,7 +140,7 @@ function buildEditingPrompt(safe: SanitizedCaseForAI): string {
 export async function generatePlanningDraft(caseData: CaseData, brandSettings: BrandSettings): Promise<AiPlanningResult> {
   var safe = sanitizeCaseForAI(caseData);
   var config = getAiRuntimeConfig();
-  if (AI_PROXY_URL && config.provider !== 'mock') {
+  if (AI_PROXY_URL) {
     try {
       var raw = await callBackendProxy('generate', {
         provider: config.provider, model: config.model,
@@ -157,7 +157,7 @@ export async function generatePlanningDraft(caseData: CaseData, brandSettings: B
 export async function generateProductionContent(caseData: CaseData, brandSettings: BrandSettings): Promise<AiProductionResult> {
   var safe = sanitizeCaseForAI(caseData);
   var config = getAiRuntimeConfig();
-  if (AI_PROXY_URL && config.provider !== 'mock') {
+  if (AI_PROXY_URL) {
     try {
       var raw = await callBackendProxy('generate', {
         provider: config.provider, model: config.model,
@@ -174,7 +174,7 @@ export async function generateProductionContent(caseData: CaseData, brandSetting
 export async function generateSocialCopy(caseData: CaseData, brandSettings: BrandSettings) {
   var safe = sanitizeCaseForAI(caseData);
   var config = getAiRuntimeConfig();
-  if (AI_PROXY_URL && config.provider !== 'mock') {
+  if (AI_PROXY_URL) {
     try {
       return await callBackendProxy('generate', {
         provider: config.provider, model: config.model,
@@ -188,7 +188,7 @@ export async function generateSocialCopy(caseData: CaseData, brandSettings: Bran
 export async function generateEditingBrief(caseData: CaseData, _assets: unknown[], _grade: unknown) {
   var safe = sanitizeCaseForAI(caseData);
   var config = getAiRuntimeConfig();
-  if (AI_PROXY_URL && config.provider !== 'mock') {
+  if (AI_PROXY_URL) {
     try {
       return await callBackendProxy('generate', {
         provider: config.provider, model: config.model,
