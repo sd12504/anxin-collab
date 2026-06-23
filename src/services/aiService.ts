@@ -15,12 +15,9 @@ export function sanitizeCaseForAI(c: CaseData): SanitizedCaseForAI {
 export function isValidPlanningDraft(d: unknown): d is AiPlanningResult {
   if (!d || typeof d !== 'object') return false;
   const x = d as Record<string, unknown>;
-  return typeof x.videoMainline === 'string' && Array.isArray(x.storyline) && x.storyline.length > 0
-    && Array.isArray(x.sceneSuggestions) && x.sceneSuggestions.length > 0
-    && Array.isArray(x.interviewQuestions) && x.interviewQuestions.length > 0
-    && Array.isArray(x.shortsIdeas) && x.shortsIdeas.length > 0
-    && Array.isArray(x.privacyReminders) && x.privacyReminders.length > 0
-    && typeof x.editingDirection === 'string' && typeof x.lastGeneratedAt === 'string';
+  return typeof x.videoMainline === 'string'
+    && Array.isArray(x.storyline) && x.storyline.length > 0
+    && Array.isArray(x.interviewQuestions) && x.interviewQuestions.length > 0;
 }
 
 export function isValidProductionContent(d: unknown): d is AiProductionResult {
@@ -28,24 +25,7 @@ export function isValidProductionContent(d: unknown): d is AiProductionResult {
   const x = d as Record<string, unknown>;
   if (!Array.isArray(x.shootingChecklist) || x.shootingChecklist.length === 0) return false;
   if (typeof x.longformScript !== 'string') return false;
-  if (!Array.isArray(x.shortsScripts) || x.shortsScripts.length === 0) return false;
   if (!Array.isArray(x.interviewQuestions) || x.interviewQuestions.length === 0) return false;
-  if (typeof x.lastGeneratedAt !== 'string') return false;
-  const eb = x.editingBrief as Record<string, unknown> | undefined;
-  if (!eb || typeof eb !== 'object') return false;
-  if (typeof eb.openingStyle !== 'string') return false;
-  if (!Array.isArray(eb.segmentOrder) || eb.segmentOrder.length === 0) return false;
-  if (typeof eb.subtitleDirection !== 'string') return false;
-  if (typeof eb.musicDirection !== 'string') return false;
-  if (!Array.isArray(eb.shortsCutPoints)) return false;
-  if (!Array.isArray(eb.missingAssets)) return false;
-  const sc = x.socialCopy as Record<string, unknown> | undefined;
-  if (!sc || typeof sc !== 'object') return false;
-  if (typeof sc.youtubeTitle !== 'string') return false;
-  if (typeof sc.shortsTitle !== 'string') return false;
-  if (typeof sc.facebookPost !== 'string') return false;
-  if (typeof sc.instagramCaption !== 'string') return false;
-  if (!Array.isArray(sc.hashtags) || sc.hashtags.length === 0) return false;
   return true;
 }
 
