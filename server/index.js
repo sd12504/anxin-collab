@@ -4,6 +4,7 @@ import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 8787;
+const HOST = '0.0.0.0';
 
 // ===== CORS =====
 const allowedOrigins = [
@@ -139,8 +140,8 @@ app.post('/api/ai/generate', async (req, res) => {
 });
 
 // ===== Start =====
-app.listen(PORT, () => {
-  console.log(`anxin-ai-proxy running on port ${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`anxin-ai-proxy running on ${HOST}:${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
   if (!process.env.DEEPSEEK_API_KEY) {
     console.warn('WARNING: DEEPSEEK_API_KEY not set. /api/ai/generate will return 500.');
