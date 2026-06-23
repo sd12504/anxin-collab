@@ -1,0 +1,22 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+tsconfig.tsbuildinfo
+
+# Environment variables (contains API keys — NEVER commit)
+.env
+.env.local
+.env.*.local
+server/.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
