@@ -184,7 +184,8 @@ app.post('/api/ai/generate', async (req, res) => {
   }
 });
 
-app.listen(PORT, HOST, () => {
+initDB().then(() => {
+  app.listen(PORT, HOST, () => {
   console.log('anxin-ai-proxy running on ' + HOST + ':' + PORT);
   if (!process.env.DEEPSEEK_API_KEY) {
     console.warn('WARNING: DEEPSEEK_API_KEY not set.');
@@ -197,4 +198,5 @@ app.listen(PORT, HOST, () => {
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down...');
   process.exit(0);
+});
 });
