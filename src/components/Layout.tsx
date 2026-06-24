@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Archive, BriefcaseBusiness, Download, Home, LayoutDashboard,
-  PenTool, Search, Settings, ShieldCheck, Sparkles, Bell, LogOut,
+  Search, Settings, ShieldCheck, Bell, LogOut,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -11,7 +11,6 @@ const tabs = [
   { to: '/', label: '總覽', Icon: Home },
   { to: '/cases', label: '案例管理', Icon: BriefcaseBusiness },
   { to: '/collab', label: '協作板', Icon: LayoutDashboard },
-  { to: '/production', label: '製片工具', Icon: PenTool },
   { to: '/library', label: '素材庫', Icon: Archive },
   { to: '/export', label: '輸出中心', Icon: Download },
   { to: '/brand', label: '品牌設定', Icon: ShieldCheck },

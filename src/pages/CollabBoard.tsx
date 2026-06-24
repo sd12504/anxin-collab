@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Archive,
   ClipboardList,
-  Download,
   PenLine,
   X,
 } from 'lucide-react';
@@ -11,7 +10,6 @@ import type { LucideIcon } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
 import { DropdownSelect } from '../components/ui/DropdownSelect';
 import { computeGrade, getCompletion } from '../utils/grading';
-import { generatePlanningMarkdown } from '../utils/markdown';
 import type { CaseData, CaseStage, HouseCondition, ShootStatus, Shootable, Visibility } from '../types';
 
 const caseStages: CaseStage[] = ['接案', '丈量', '設計中', '施工中', '完工'];
@@ -52,23 +50,12 @@ export default function CollabBoard() {
     e.target.value = '';
   };
 
-  const handleDownloadMarkdown = () => {
-    const md = generatePlanningMarkdown(current);
-    const blob = new Blob([md], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(current.name || '案件').replace(/[\\/:*?"<>|]/g, '_')}_企劃書_${new Date().toISOString().slice(0, 10)}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div className="max-w-screen-2xl mx-auto px-4 lg:px-8 py-6 lg:py-8">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="font-serif text-2xl font-semibold text-gray-900">協作板</h1>
-          <p className="text-sm text-gray-500 mt-1">從案件盤點、引導問題、素材到企劃下載，一次看清楚下一步。</p>
+          <p className="text-sm text-gray-500 mt-1">從案件盤點、引導問題到素材管理，一次看清楚下一步。</p>
         </div>
         <DropdownSelect
           className="lg:w-72"
@@ -134,16 +121,6 @@ export default function CollabBoard() {
           accent="bg-amber-400"
           actionLabel="前往素材庫"
           onAction={() => navigate('/library')}
-        />
-
-        <WorkflowCard
-          step="4"
-          title="下載企劃書"
-          description="匯出 PDF / Markdown 給團隊使用"
-          Icon={Download}
-          accent="bg-purple-400"
-          actionLabel="下載企劃書"
-          onAction={handleDownloadMarkdown}
         />
       </section>
 
