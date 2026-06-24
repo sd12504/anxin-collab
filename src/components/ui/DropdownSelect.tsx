@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 export type DropdownOption<T extends string = string> = {
   value: T;
@@ -82,7 +82,7 @@ export function DropdownSelect<T extends string>({
                 role="menuitemcheckbox"
                 aria-checked={checked}
                 disabled={option.disabled}
-                className={`w-full rounded-md px-2.5 py-2 text-left text-sm flex items-center gap-2 transition-colors ${
+                className={`w-full rounded-md px-2.5 py-2 text-left text-sm flex items-center transition-colors ${
                   checked
                     ? 'bg-olive-50 text-olive-800 font-medium'
                     : 'text-gray-700 hover:bg-warm-50'
@@ -93,11 +93,6 @@ export function DropdownSelect<T extends string>({
                   setOpen(false);
                 }}
               >
-                <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                  checked ? 'border-olive-600 bg-olive-600 text-white' : 'border-gray-300 bg-white'
-                }`}>
-                  {checked && <Check size={12} strokeWidth={3} />}
-                </span>
                 <span className="truncate">{option.label}</span>
               </button>
             );
