@@ -61,8 +61,6 @@ export default function CaseModal({ editId, onSave, onClose, saving, saveError }
       stage,
       shootStatus,
       shootable,
-      photographer: existing?.photographer || '',
-      editor: existing?.editor || '',
       ownerName: ownerName.trim(),
       addrVisible: existing?.addrVisible || '未確認',
       ownerVisible,

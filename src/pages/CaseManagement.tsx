@@ -34,7 +34,7 @@ export default function CaseManagement() {
         await addCase({
           id: 'case-' + Date.now(), name: '', region: '', area: '', houseCondition: '中古屋', designStyle: '',
           stage: '接案', shootStatus: '企劃中', shootable: '可露出',
-          designer: '', photographer: '', editor: '', ownerName: '',
+          designer: '', ownerName: '',
           createdBy: '管理員', updatedBy: '管理員', createdAt: now, updatedAt: now,
           problem: '', highlight: '', beforeAfter: '普通', beforeAfterNote: '',
           beforeImage: null, afterImage: null, mustShoot: '', designerExplain: '',

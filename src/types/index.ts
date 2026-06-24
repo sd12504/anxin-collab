@@ -32,8 +32,8 @@ export interface CaseData {
   shootable: Shootable;
   // People
   designer: string;
-  photographer: string;
-  editor: string;
+  photographer?: string;
+  editor?: string;
   ownerName: string;
   // Meta
   createdBy: string;
