@@ -1,5 +1,6 @@
 import type { CaseData, BrandSettings, SanitizedCaseForAI, AiPlanningResult, AiProductionResult } from '../types';
 import { getAiRuntimeConfig } from '../config/aiConfig';
+import { getAuthToken } from '../hooks/useAuth';
 
 export function sanitizeCaseForAI(c: CaseData): SanitizedCaseForAI {
   return {
@@ -39,9 +40,12 @@ var AI_PROXY_URL = import.meta.env.VITE_AI_PROXY_URL || '';
 
 async function callBackendProxy(endpoint: string, body: Record<string, unknown>): Promise<unknown> {
   if (!AI_PROXY_URL) throw new Error('尚未設定 AI 代理伺服器網址。');
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = getAuthToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
   var res = await fetch(AI_PROXY_URL + '/api/ai/' + endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body),
   });
   if (!res.ok) {

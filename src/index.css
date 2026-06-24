@@ -81,4 +81,12 @@
   .sidebar-link-inactive {
     @apply text-white/55 hover:text-white hover:bg-white/6;
   }
+
+  .scrollbar-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
 }

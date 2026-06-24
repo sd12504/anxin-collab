@@ -2,11 +2,17 @@ import { useState, useCallback, useEffect } from 'react';
 import type { AppState, CaseData, Asset, BrandSettings } from '../types';
 import { loadState, saveState, defaultBrandSettings } from '../data/store';
 import { createDemoCases } from '../data/mockData';
+import { getAuthToken } from './useAuth';
 
 let globalState: AppState | null = null;
 const listeners = new Set<() => void>();
 let backendSyncStarted = false;
 const CASE_API_URL = (import.meta.env.VITE_AI_PROXY_URL || '').replace(/\/$/, '');
+
+function authHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+}
 
 function isDemoCase(c: CaseData): boolean {
   return c.id.startsWith('demo-');
@@ -14,7 +20,7 @@ function isDemoCase(c: CaseData): boolean {
 
 async function fetchBackendCases(): Promise<CaseData[]> {
   if (!CASE_API_URL) return [];
-  const res = await fetch(`${CASE_API_URL}/api/cases`);
+  const res = await fetch(`${CASE_API_URL}/api/cases`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`讀取 Postgres 案件失敗：${res.status}`);
   const data = await res.json();
   return Array.isArray(data) ? data as CaseData[] : [];
@@ -24,7 +30,7 @@ async function upsertBackendCase(c: CaseData): Promise<void> {
   if (!CASE_API_URL || isDemoCase(c)) return;
   const res = await fetch(`${CASE_API_URL}/api/cases/${encodeURIComponent(c.id)}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(c),
   });
   if (!res.ok) throw new Error(`同步 Postgres 案件失敗：${res.status}`);
@@ -32,7 +38,7 @@ async function upsertBackendCase(c: CaseData): Promise<void> {
 
 async function deleteBackendCase(id: string): Promise<void> {
   if (!CASE_API_URL || id.startsWith('demo-')) return;
-  const res = await fetch(`${CASE_API_URL}/api/cases/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  const res = await fetch(`${CASE_API_URL}/api/cases/${encodeURIComponent(id)}`, { method: 'DELETE', headers: authHeaders() });
   if (!res.ok && res.status !== 404) throw new Error(`刪除 Postgres 案件失敗：${res.status}`);
 }
 

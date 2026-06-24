@@ -1,14 +1,15 @@
-import type { CaseData, GradeResult, BeforeAfter } from '../types';
+import type { CaseData, GradeResult } from '../types';
 
 export function computeGrade(c: CaseData): GradeResult {
   let score = 0;
   if ((c.problem || '').trim().length > 10) score += 1;
   if ((c.highlight || '').trim().length > 10) score += 1;
-  if (c.beforeAfter === '有') score += 2;
   if ((c.mustShoot || '').trim().length > 10) score += 1;
   if ((c.designerExplain || '').trim().length > 10) score += 1;
   if ((c.masterExplain || '').trim().length > 10) score += 1;
   if ((c.ownerStory || '').trim().length > 10) score += 1;
+  if ((c.materialColor || '').trim().length > 10) score += 1;
+  if ((c.specialCraft || '').trim().length > 10) score += 1;
 
   if (c.shootable === '不建議') {
     return { grade: 'D', label: '暫緩拍攝', desc: '資料不足或不適合公開', color: '#8A7A6A', score };
@@ -49,12 +50,12 @@ export function getJudgmentReasons(c: CaseData): string {
   const reasons: string[] = [];
   if ((c.problem || '').trim()) reasons.push('已提供屋主需求');
   if ((c.highlight || '').trim()) reasons.push('已提供核心亮點');
-  if (c.beforeAfter === '有') reasons.push('Before/After 反差明顯');
   if ((c.designerExplain || '').trim()) reasons.push('有設計師專業判斷');
   if ((c.masterExplain || '').trim()) reasons.push('有師傅或工法細節');
   if ((c.ownerStory || '').trim()) reasons.push('有屋主故事');
   if ((c.mustShoot || '').trim()) reasons.push('有明確必拍畫面');
-  if (c.beforeAfter === '沒有') reasons.push('缺少 Before/After 反差');
+  if ((c.materialColor || '').trim()) reasons.push('有材質與色彩重點');
+  if ((c.specialCraft || '').trim()) reasons.push('有特殊工法或注意事項');
   return reasons.length ? reasons.join('、') + '。' : '尚無足夠資訊進行判斷。';
 }
 

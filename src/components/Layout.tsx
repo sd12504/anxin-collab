@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Archive, BriefcaseBusiness, Download, Home, LayoutDashboard,
-  PenTool, Search, Settings, ShieldCheck, Sparkles, Bell,
+  PenTool, Search, Settings, ShieldCheck, Sparkles, Bell, LogOut,
 } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 const tabs = [
   { to: '/', label: '總覽', Icon: Home },
@@ -20,6 +21,8 @@ const tabs = [
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen flex bg-[#faf8f4]">
@@ -77,12 +80,21 @@ export default function Layout() {
             <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-rose-400" />
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="w-7 h-7 rounded-full bg-gradient-to-br from-olive-500 to-olive-700 flex items-center justify-center text-[0.6rem] font-bold flex-shrink-0">攝</span>
-            <div className="min-w-0">
-              <div className="text-xs font-medium truncate">攝影剪輯</div>
-              <div className="text-[0.55rem] text-white/35">目前使用者</div>
+            <span className="w-7 h-7 rounded-full bg-gradient-to-br from-olive-500 to-olive-700 flex items-center justify-center text-[0.6rem] font-bold flex-shrink-0">
+              {(user?.username || '管').charAt(0)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-medium truncate">{user?.username || '管理員'}</div>
+              <div className="text-[0.55rem] text-white/35">{user?.role === 'admin' ? '管理員' : '使用者'}</div>
             </div>
           </div>
+          <button
+            className="p-1.5 rounded-lg text-white/40 hover:text-rose-400 hover:bg-white/8 transition-colors"
+            onClick={() => { logout(); navigate('/login', { replace: true }); }}
+            title="登出"
+          >
+            <LogOut size={14} />
+          </button>
         </div>
       </aside>
 

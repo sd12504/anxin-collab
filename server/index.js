@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { initDB, getAllCases, getCaseById, upsertCase, deleteCaseById } from './db.js';
 
 console.log('Starting anxin-ai-proxy...');
@@ -25,6 +27,60 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '100kb' }));
 
+// ===== Auth Setup =====
+const JWT_SECRET = process.env.JWT_SECRET || 'anxin-dev-secret-change-in-production';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+
+// Hash the password once at startup
+let ADMIN_PASSWORD_HASH = null;
+(async () => {
+  const plain = process.env.ADMIN_PASSWORD || 'anxin2024';
+  ADMIN_PASSWORD_HASH = await bcrypt.hash(plain, 10);
+  console.log('Auth ready. Admin user:', ADMIN_USERNAME);
+})();
+
+function authMiddleware(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ error: '請先登入' });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    req.user = payload;
+    next();
+  } catch {
+    return res.status(401).json({ error: '登入已過期，請重新登入' });
+  }
+}
+
+// ===== Auth Routes =====
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) {
+    return res.status(400).json({ error: '請輸入帳號與密碼' });
+  }
+  if (username !== ADMIN_USERNAME) {
+    return res.status(401).json({ error: '帳號或密碼錯誤' });
+  }
+  if (!ADMIN_PASSWORD_HASH) {
+    return res.status(503).json({ error: '服務尚未就緒，請稍後再試' });
+  }
+  const valid = await bcrypt.compare(password, ADMIN_PASSWORD_HASH);
+  if (!valid) {
+    return res.status(401).json({ error: '帳號或密碼錯誤' });
+  }
+  const token = jwt.sign(
+    { username, role: 'admin' },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
+  );
+  res.json({ ok: true, token, username, role: 'admin' });
+});
+
+app.get('/api/auth/verify', authMiddleware, (req, res) => {
+  res.json({ ok: true, user: req.user });
+});
+
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'anxin-ai-proxy' });
 });
@@ -34,20 +90,20 @@ app.get('/', (_req, res) => {
 });
 
 // ===== Case CRUD =====
-app.get('/api/cases', async (_req, res) => {
+app.get('/api/cases', authMiddleware, async (_req, res) => {
   try { res.json(await getAllCases()); } catch { res.status(500).json({ error: 'Failed' }); }
 });
-app.get('/api/cases/:id', async (req, res) => {
+app.get('/api/cases/:id', authMiddleware, async (req, res) => {
   try {
     const c = await getCaseById(req.params.id);
     if (!c) return res.status(404).json({ error: 'Not found' });
     res.json(c);
   } catch { res.status(500).json({ error: 'Failed' }); }
 });
-app.put('/api/cases/:id', async (req, res) => {
+app.put('/api/cases/:id', authMiddleware, async (req, res) => {
   try { await upsertCase(req.params.id, req.body); res.json({ ok: true }); } catch { res.status(500).json({ error: 'Failed' }); }
 });
-app.delete('/api/cases/:id', async (req, res) => {
+app.delete('/api/cases/:id', authMiddleware, async (req, res) => {
   try { await deleteCaseById(req.params.id); res.json({ ok: true }); } catch { res.status(500).json({ error: 'Failed' }); }
 });
 
@@ -144,7 +200,7 @@ const SCHEMAS = {
   },
 };
 
-app.post('/api/ai/generate', async (req, res) => {
+app.post('/api/ai/generate', authMiddleware, async (req, res) => {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'DEEPSEEK_API_KEY not configured on server.' });

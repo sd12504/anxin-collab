@@ -51,16 +51,16 @@ export default function CaseManagement() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 lg:px-8 py-6 lg:py-8">
-      <div className="flex flex-wrap justify-between items-center gap-3 mb-5">
-        <h2 className="font-serif text-xl">案例管理</h2>
-        <div className="flex gap-2 flex-wrap">
-          <div className="flex gap-1 flex-wrap">
-            {['', ...STAGES].map(s => (
-              <button key={s || 'all'} className={`btn btn-sm ${filterStage === s ? 'bg-olive-100 border-olive-400 text-olive-700' : ''}`}
-                onClick={() => { setFilterStage(s); setPage(0); }}>{s || '全部'}</button>
-            ))}
-          </div>
-          <button className="btn btn-primary btn-sm" onClick={() => { setEditId(null); setModalOpen(true); }}>＋ 新增案件</button>
+      <div className="flex flex-col gap-3 mb-5">
+        <div className="flex items-center justify-between">
+          <h2 className="font-serif text-xl">案例管理</h2>
+          <button className="btn btn-primary btn-sm flex-shrink-0" onClick={() => { setEditId(null); setModalOpen(true); }}>＋ 新增案件</button>
+        </div>
+        <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hidden">
+          {['', ...STAGES].map(s => (
+            <button key={s || 'all'} className={`btn btn-sm whitespace-nowrap flex-shrink-0 ${filterStage === s ? 'bg-olive-100 border-olive-400 text-olive-700' : ''}`}
+              onClick={() => { setFilterStage(s); setPage(0); }}>{s || '全部'}</button>
+          ))}
         </div>
       </div>
 
