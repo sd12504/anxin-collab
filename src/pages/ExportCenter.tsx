@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Download, FileText, Printer, Zap } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
+import { DropdownSelect } from '../components/ui/DropdownSelect';
 import { generatePlanningMarkdown, generateProductionPackMarkdown, generateSocialCopyMarkdown, generateShotListMarkdown, generateEditingBriefMarkdown } from '../utils/markdown';
 import { generatePlanningDraft, generateSocialCopy, generateEditingBrief, isValidPlanningDraft, isValidProductionContent } from '../services/aiService';
 import { generateScript } from '../services/ai';
@@ -148,8 +149,8 @@ export default function ExportCenter() {
 
   if (!current) {
     return (
-      <div className="max-w-6xl mx-auto px-4 lg:px-8 py-6">
-        <div className="text-gray-400 text-sm">請選擇案件。{cases.map(c => <button key={c.id} className="btn btn-sm ml-2" onClick={() => setEditingId(c.id)}>{c.name}</button>)}</div>
+      <div className="max-w-6xl mx-auto px-4 lg:px-8 py-16 text-center text-gray-400">
+        尚無案件，請先至「案例管理」新增案件。
       </div>
     );
   }
@@ -158,11 +159,15 @@ export default function ExportCenter() {
     <div className="flex flex-col xl:flex-row min-h-[calc(100vh-0px)] xl:h-[calc(100vh-0px)]">
       {/* Left: TOC */}
       <div className="w-full xl:w-56 bg-white/60 border-b xl:border-b-0 xl:border-r border-gray-100 p-4 xl:overflow-y-auto flex-shrink-0">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-serif font-semibold text-sm">輸出中心</h2>
-          <button className="btn btn-sm" onClick={() => setEditingId(null)}>切換</button>
+        <div className="mb-4">
+          <h2 className="font-serif font-semibold text-sm mb-2">輸出中心</h2>
+          <DropdownSelect
+            value={current.id}
+            options={cases.map(c => ({ value: c.id, label: c.name || '未命名' }))}
+            onChange={setEditingId}
+            ariaLabel="選擇案件"
+          />
         </div>
-        <div className="text-xs text-gray-400 mb-2">{current.name} · {grade?.grade} {grade?.label}</div>
         <button
           className="btn btn-primary btn-sm w-full mb-3 flex items-center justify-center gap-1"
           onClick={generateAll}
