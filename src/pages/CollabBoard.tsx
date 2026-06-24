@@ -206,9 +206,16 @@ export default function CollabBoard() {
           <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5 mb-5">
             <div className="rounded-lg overflow-hidden bg-gray-100 border border-warm-200">
               <div className="aspect-[4/3] relative">
-                <img src={currentImage} alt={`${current.name} 案件圖片`} className="h-full w-full object-cover" />
+                {current.coverImage ? (
+                  <img src={current.coverImage} alt={`${current.name} 案件圖片`} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-gray-400 bg-warm-50">
+                    <div className="text-sm font-medium">尚未設定圖片</div>
+                    <div className="text-xs">可從這裡上傳案件圖片</div>
+                  </div>
+                )}
                 <label className="absolute right-3 bottom-3 btn btn-sm bg-white/90 hover:bg-white cursor-pointer">
-                  更換圖片
+                  {current.coverImage ? '更換圖片' : '上傳圖片'}
                   <input type="file" accept="image/*" className="hidden" onChange={handleCoverImageChange} />
                 </label>
               </div>
@@ -304,7 +311,7 @@ function Modal({
 }) {
   return (
     <div className="fixed inset-0 z-50 bg-gray-900/35 px-3 py-4 sm:px-6 lg:px-8 flex items-start justify-center overflow-y-auto" onClick={onClose}>
-      <section className="card w-full max-w-5xl p-5 lg:p-6 my-4 shadow-2xl" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="collab-modal-title">
+      <section className="w-full max-w-5xl rounded-xl border border-warm-200 bg-[#faf8f4] p-5 lg:p-6 my-4 shadow-2xl" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="collab-modal-title">
         <div className="flex items-start justify-between gap-4 mb-5">
           <div className="min-w-0">
             <h2 id="collab-modal-title" className="font-serif text-lg font-semibold">{title}</h2>
