@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { FileText, Pencil, Trash2, Upload, X } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
+import { DropdownSelect } from '../components/ui/DropdownSelect';
 import type { Asset, AssetType } from '../types';
 
 const assetTypes: AssetType[] = ['Before', '施工中', '完工', '設計圖', '參考圖', '訪談素材', '可剪Shorts片段'];
@@ -164,11 +165,15 @@ export default function AssetLibrary() {
     <div className="flex flex-col lg:flex-row min-h-[calc(100vh-0px)]">
       <aside className="w-full lg:w-60 bg-white/60 border-b lg:border-b-0 lg:border-r border-gray-100 p-4 flex flex-col">
         <h1 className="font-serif font-semibold text-xl mb-4">素材庫</h1>
-        <label className="label" htmlFor="asset-case">案件</label>
-        <select id="asset-case" className="input text-xs mb-3" value={filterCase} onChange={e => setFilterCase(e.target.value)}>
-          <option value="all">所有案件</option>
-          {cases.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        <span className="label">案件</span>
+        <DropdownSelect
+          className="mb-3"
+          buttonClassName="input text-xs"
+          value={filterCase}
+          options={[{ value: 'all', label: '所有案件' }, ...cases.map(c => ({ value: c.id, label: c.name || '未命名' }))]}
+          onChange={setFilterCase}
+          ariaLabel="篩選案件"
+        />
         <div className="grid grid-cols-2 lg:grid-cols-1 gap-1">
           {[{ label: '全部素材', value: 'all' as const }, ...assetTypes.map(t => ({ label: t, value: t }))].map(item => (
             <button
@@ -193,10 +198,14 @@ export default function AssetLibrary() {
               value={query}
               onChange={e => setQuery(e.target.value)}
             />
-            <select className="input sm:max-w-[180px]" value={filterType} onChange={e => setFilterType(e.target.value as AssetType | 'all')}>
-              <option value="all">全部類型</option>
-              {assetTypes.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
+            <DropdownSelect
+              className="sm:max-w-[180px]"
+              buttonClassName="input"
+              value={filterType}
+              options={[{ value: 'all', label: '全部類型' }, ...assetTypes]}
+              onChange={value => setFilterType(value as AssetType | 'all')}
+              ariaLabel="篩選素材類型"
+            />
           </div>
           <button
             className="btn btn-primary flex items-center justify-center gap-2"
@@ -284,15 +293,23 @@ export default function AssetLibrary() {
               </label>
               <label className="block">
                 <span className="label">對應案件</span>
-                <select className="input" value={editCaseId} onChange={e => setEditCaseId(e.target.value)}>
-                  {cases.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <DropdownSelect
+                  buttonClassName="input"
+                  value={editCaseId}
+                  options={cases.map(c => ({ value: c.id, label: c.name || '未命名' }))}
+                  onChange={setEditCaseId}
+                  ariaLabel="對應案件"
+                />
               </label>
               <label className="block">
                 <span className="label">素材類型</span>
-                <select className="input" value={editType} onChange={e => setEditType(e.target.value as AssetType)}>
-                  {assetTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <DropdownSelect
+                  buttonClassName="input"
+                  value={editType}
+                  options={assetTypes}
+                  onChange={value => setEditType(value as AssetType)}
+                  ariaLabel="素材類型"
+                />
               </label>
             </div>
 
@@ -320,16 +337,23 @@ export default function AssetLibrary() {
             <div className="space-y-4">
               <label className="block">
                 <span className="label">對應案件</span>
-                <select className="input" value={uploadCaseId} onChange={e => setUploadCaseId(e.target.value)}>
-                  <option value="" disabled>請選擇案件</option>
-                  {cases.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <DropdownSelect
+                  buttonClassName="input"
+                  value={uploadCaseId}
+                  options={[{ value: '', label: '請選擇案件', disabled: true }, ...cases.map(c => ({ value: c.id, label: c.name || '未命名' }))]}
+                  onChange={setUploadCaseId}
+                  ariaLabel="對應案件"
+                />
               </label>
               <label className="block">
                 <span className="label">素材類型</span>
-                <select className="input" value={uploadType} onChange={e => setUploadType(e.target.value as AssetType)}>
-                  {assetTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <DropdownSelect
+                  buttonClassName="input"
+                  value={uploadType}
+                  options={assetTypes}
+                  onChange={value => setUploadType(value as AssetType)}
+                  ariaLabel="素材類型"
+                />
               </label>
               <input
                 ref={fileInputRef}

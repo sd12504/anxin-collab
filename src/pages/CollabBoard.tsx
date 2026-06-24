@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
+import { DropdownSelect } from '../components/ui/DropdownSelect';
 import { computeGrade, getCompletion, getGradeOutput, getGradePositioning, getJudgmentReasons } from '../utils/grading';
 import { generatePlanningDraft, isValidPlanningDraft } from '../services/aiService';
 import { generatePlanningMarkdown } from '../utils/markdown';
@@ -112,16 +113,14 @@ export default function CollabBoard() {
           <h1 className="font-serif text-2xl font-semibold text-gray-900">協作板</h1>
           <p className="text-sm text-gray-500 mt-1">從案件盤點、引導問題、AI 企劃到素材與下載，一次看清楚下一步。</p>
         </div>
-        <select
-          className="input lg:w-72"
+        <DropdownSelect
+          className="lg:w-72"
+          buttonClassName="input"
           value={current.id}
-          onChange={e => setEditingId(e.target.value)}
-          aria-label="選擇案件"
-        >
-          {cases.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+          options={cases.map(c => ({ value: c.id, label: c.name || '未命名' }))}
+          onChange={setEditingId}
+          ariaLabel="選擇案件"
+        />
       </div>
 
       <section className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr_0.85fr] gap-4 mb-4">
@@ -352,12 +351,10 @@ function EditableText({ label, value, onChange }: { label: string; value: string
 
 function EditableSelect({ label, value, options, onChange }: { label: string; value: string; options: readonly string[]; onChange: (value: string) => void }) {
   return (
-    <label className="rounded-lg border border-warm-200 bg-white/60 p-3 block">
+    <div className="rounded-lg border border-warm-200 bg-white/60 p-3 block">
       <span className="text-xs text-gray-400 mb-1 block">{label}</span>
-      <select className="w-full bg-transparent text-sm font-medium text-gray-800 outline-none" value={value} onChange={e => onChange(e.target.value)}>
-        {options.map(option => <option key={option} value={option}>{option}</option>)}
-      </select>
-    </label>
+      <DropdownSelect value={value} options={options} onChange={onChange} ariaLabel={label} />
+    </div>
   );
 }
 

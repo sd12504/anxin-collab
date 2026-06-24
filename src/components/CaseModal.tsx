@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CaseData, CaseStage, HouseCondition, ShootStatus, Shootable, Visibility } from '../types';
 import { useStore } from '../hooks/useStore';
 import { motion } from 'framer-motion';
+import { DropdownSelect } from './ui/DropdownSelect';
 
 interface Props {
   editId: string | null;
@@ -198,15 +199,14 @@ function EditableSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="rounded-lg border border-warm-200 bg-white/80 p-3 block">
+    <div className="rounded-lg border border-warm-200 bg-white/80 p-3 block">
       <span className="text-xs text-gray-400 mb-1 block">{label}</span>
-      <select
-        className="w-full bg-transparent text-sm font-medium text-gray-800 outline-none"
+      <DropdownSelect
         value={value}
-        onChange={e => onChange(e.target.value)}
-      >
-        {options.map(option => <option key={option} value={option}>{option}</option>)}
-      </select>
-    </label>
+        options={options}
+        onChange={onChange}
+        ariaLabel={label}
+      />
+    </div>
   );
 }
