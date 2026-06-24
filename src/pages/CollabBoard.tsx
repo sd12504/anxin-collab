@@ -4,19 +4,15 @@ import {
   Archive,
   ClipboardList,
   Download,
-  FileText,
-  Image as ImageIcon,
   PenLine,
-  PlayCircle,
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
 import { DropdownSelect } from '../components/ui/DropdownSelect';
-import { computeGrade, getCompletion, getGradeOutput, getGradePositioning, getJudgmentReasons } from '../utils/grading';
-import { generatePlanningDraft, isValidPlanningDraft } from '../services/aiService';
+import { computeGrade, getCompletion } from '../utils/grading';
 import { generatePlanningMarkdown } from '../utils/markdown';
-import type { AiPlanningResult, AiStatus, CaseData, CaseStage, HouseCondition, ShootStatus, Shootable, Visibility } from '../types';
+import type { CaseData, CaseStage, HouseCondition, ShootStatus, Shootable, Visibility } from '../types';
 
 const caseStages: CaseStage[] = ['接案', '丈量', '設計中', '施工中', '完工'];
 const shootStatuses: ShootStatus[] = ['企劃中', '拍攝前置', '拍攝中', '後期製作', '已完成'];
@@ -26,26 +22,13 @@ const visibilityOptions: Visibility[] = ['可露出', '需遮蔽', '不可露出
 
 export default function CollabBoard() {
   const navigate = useNavigate();
-  const { cases, editingId, setEditingId, updateCase, brandSettings } = useStore();
+  const { cases, editingId, setEditingId, updateCase } = useStore();
   const current = editingId ? cases.find(c => c.id === editingId) : cases[0] || null;
-  const [draft, setDraft] = useState<AiPlanningResult | null>(null);
-  const [aiStatus, setAiStatus] = useState<AiStatus>('idle');
-  const [detailOpen, setDetailOpen] = useState<'case' | 'questions' | 'preview' | null>(null);
+  const [detailOpen, setDetailOpen] = useState<'case' | 'questions' | null>(null);
 
   useEffect(() => {
     if (!editingId && cases.length > 0) setEditingId(cases[0].id);
   }, [cases, editingId, setEditingId]);
-
-  useEffect(() => {
-    if (!current) return;
-    if (isValidPlanningDraft(current.aiPlanningDraft)) {
-      setDraft(current.aiPlanningDraft);
-      setAiStatus('success');
-    } else {
-      setDraft(null);
-      setAiStatus('idle');
-    }
-  }, [current?.id, current?.aiPlanningDraft]);
 
   if (!current) {
     return (
@@ -69,22 +52,8 @@ export default function CollabBoard() {
     e.target.value = '';
   };
 
-  const handleGenerate = async () => {
-    setAiStatus('loading');
-    try {
-      const result = await generatePlanningDraft(current, brandSettings);
-      if (!isValidPlanningDraft(result)) throw new Error('AI 回傳格式不完整');
-      setDraft(result);
-      setAiStatus('success');
-      updateCase(current.id, { aiPlanningDraft: result });
-      setDetailOpen('preview');
-    } catch {
-      setAiStatus('error');
-    }
-  };
-
   const handleDownloadMarkdown = () => {
-    const md = generatePlanningMarkdown(current, draft || undefined);
+    const md = generatePlanningMarkdown(current);
     const blob = new Blob([md], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -99,7 +68,7 @@ export default function CollabBoard() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="font-serif text-2xl font-semibold text-gray-900">協作板</h1>
-          <p className="text-sm text-gray-500 mt-1">從案件盤點、引導問題、AI 企劃到素材與下載，一次看清楚下一步。</p>
+          <p className="text-sm text-gray-500 mt-1">從案件盤點、引導問題、素材到企劃下載，一次看清楚下一步。</p>
         </div>
         <DropdownSelect
           className="lg:w-72"
@@ -159,17 +128,6 @@ export default function CollabBoard() {
 
         <WorkflowCard
           step="3"
-          title="影像企劃預覽"
-          description={aiStatus === 'success' ? '企劃草稿已生成' : aiStatus === 'loading' ? '正在生成企劃草稿' : 'AI 生成影像企劃與故事線'}
-          Icon={PlayCircle}
-          accent="bg-blue-400"
-          actionLabel={aiStatus === 'loading' ? '生成中' : '預覽企劃書'}
-          onAction={draft ? () => setDetailOpen(detailOpen === 'preview' ? null : 'preview') : handleGenerate}
-          disabled={aiStatus === 'loading'}
-        />
-
-        <WorkflowCard
-          step="4"
           title="素材庫"
           description="管理圖片、影片與設計圖面"
           Icon={Archive}
@@ -179,7 +137,7 @@ export default function CollabBoard() {
         />
 
         <WorkflowCard
-          step="5"
+          step="4"
           title="下載企劃書"
           description="匯出 PDF / Markdown 給團隊使用"
           Icon={Download}
@@ -258,35 +216,6 @@ export default function CollabBoard() {
           </div>
         </Modal>
       )}
-
-      {detailOpen === 'preview' && (
-        <section className="card p-5 lg:p-6">
-          <div className="mb-5">
-            <h2 className="font-serif text-lg font-semibold">影像企劃預覽</h2>
-            <p className="text-sm text-gray-500 mt-1">拍攝等級、影片主線與訪談方向會被帶入下載檔。</p>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
-            <div className="preview-block mb-0">
-              <h4>拍攝等級</h4>
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-4xl font-bold font-serif" style={{ color: grade.color }}>{grade.grade}</span>
-                <span className="font-semibold">{grade.label}</span>
-              </div>
-              <div className="text-sm text-gray-600 space-y-1">
-                <p><span className="text-gray-400">定位：</span>{getGradePositioning(grade.grade)}</p>
-                <p><span className="text-gray-400">判斷：</span>{getJudgmentReasons(current)}</p>
-                <p><span className="text-gray-400">輸出：</span>{getGradeOutput(grade.grade)}</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <PreviewSection title="影片主線" items={draft?.storyline || ['尚未生成企劃草稿']} ordered />
-              <PreviewSection title="拍攝場景" items={draft?.sceneSuggestions || []} />
-              <PreviewSection title="訪談問題" items={draft?.interviewQuestions || []} ordered />
-              <PreviewSection title="Shorts 題目" items={draft?.shortsIdeas || []} />
-            </div>
-          </div>
-        </section>
-      )}
     </div>
   );
 }
@@ -309,7 +238,7 @@ function Modal({
       <section className="w-full max-w-5xl rounded-xl border border-warm-200 bg-[#faf8f4] p-5 lg:p-6 my-4 shadow-2xl" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="collab-modal-title">
         <div className="flex items-start justify-between gap-4 mb-5">
           <div className="min-w-0">
-            <h2 id="collab-modal-title" className="font-serif text-lg font-semibold">{title}</h2>
+            <h2 className="font-serif text-lg font-semibold">{title}</h2>
             {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -416,27 +345,5 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
       <span className="label">{label}</span>
       <textarea className="input min-h-[88px]" value={value} onChange={e => onChange(e.target.value)} />
     </label>
-  );
-}
-
-function PreviewSection({ title, items, ordered }: { title: string; items: string[]; ordered?: boolean }) {
-  const List = ordered ? 'ol' : 'ul';
-  return (
-    <div className="preview-block mb-0">
-      <h4 className="flex items-center gap-2">
-        <FileText size={14} />
-        {title}
-      </h4>
-      {items.length ? (
-        <List className={`text-sm text-gray-700 space-y-1 ${ordered ? 'list-decimal pl-5' : 'list-disc pl-5'}`}>
-          {items.map((item, index) => <li key={`${title}-${index}`}>{item}</li>)}
-        </List>
-      ) : (
-        <div className="flex items-center gap-2 text-sm text-gray-400">
-          <ImageIcon size={14} />
-          尚未生成內容
-        </div>
-      )}
-    </div>
   );
 }
