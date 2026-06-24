@@ -27,7 +27,7 @@ export default function SystemSettings() {
           <div className="flex gap-4"><span className="text-gray-400 w-24">案件總數</span><span>{cases.length}</span></div>
           <div className="flex gap-4"><span className="text-gray-400 w-24">素材總數</span><span>{assets.length}</span></div>
           <div className="flex gap-4"><span className="text-gray-400 w-24">版本</span><span>1.0.0 MVP</span></div>
-          <div className="flex gap-4"><span className="text-gray-400 w-24">資料儲存</span><span>瀏覽器 localStorage</span></div>
+          <div className="flex gap-4"><span className="text-gray-400 w-24">資料儲存</span><span>Postgres 同步 + localStorage 快取</span></div>
           <div className="flex gap-4"><span className="text-gray-400 w-24">技術棧</span><span>React + TypeScript + Tailwind CSS</span></div>
         </div>
       </div>
@@ -60,7 +60,7 @@ export default function SystemSettings() {
       {/* Data management */}
       <div className="card p-5 lg:p-6">
         <h3 className="font-serif font-semibold mb-4 text-red-600">資料管理</h3>
-        <p className="text-sm text-gray-500 mb-4">所有資料儲存在瀏覽器 localStorage。清除後無法復原。</p>
+        <p className="text-sm text-gray-500 mb-4">此操作會清除本機快取與設定；Postgres 雲端案件不會被刪除。</p>
         <button className="btn btn-danger" onClick={handleClearData}>
           {cleared ? '已清除，重整中...' : '清除所有資料'}
         </button>

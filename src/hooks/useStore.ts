@@ -5,6 +5,36 @@ import { createDemoCases } from '../data/mockData';
 
 let globalState: AppState | null = null;
 const listeners = new Set<() => void>();
+let backendSyncStarted = false;
+const CASE_API_URL = (import.meta.env.VITE_AI_PROXY_URL || '').replace(/\/$/, '');
+
+function isDemoCase(c: CaseData): boolean {
+  return c.id.startsWith('demo-');
+}
+
+async function fetchBackendCases(): Promise<CaseData[]> {
+  if (!CASE_API_URL) return [];
+  const res = await fetch(`${CASE_API_URL}/api/cases`);
+  if (!res.ok) throw new Error(`讀取 Postgres 案件失敗：${res.status}`);
+  const data = await res.json();
+  return Array.isArray(data) ? data as CaseData[] : [];
+}
+
+async function upsertBackendCase(c: CaseData): Promise<void> {
+  if (!CASE_API_URL || isDemoCase(c)) return;
+  const res = await fetch(`${CASE_API_URL}/api/cases/${encodeURIComponent(c.id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(c),
+  });
+  if (!res.ok) throw new Error(`同步 Postgres 案件失敗：${res.status}`);
+}
+
+async function deleteBackendCase(id: string): Promise<void> {
+  if (!CASE_API_URL || id.startsWith('demo-')) return;
+  const res = await fetch(`${CASE_API_URL}/api/cases/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!res.ok && res.status !== 404) throw new Error(`刪除 Postgres 案件失敗：${res.status}`);
+}
 
 function getState(): AppState {
   if (!globalState) {
@@ -26,12 +56,44 @@ function notify() {
   listeners.forEach(fn => fn());
 }
 
+async function syncCasesFromBackend(): Promise<void> {
+  if (backendSyncStarted || !CASE_API_URL) return;
+  backendSyncStarted = true;
+
+  const s = getState();
+  const localUserCases = s.cases.filter(c => !isDemoCase(c));
+
+  try {
+    const remoteCases = await fetchBackendCases();
+    if (remoteCases.length > 0) {
+      s.cases = remoteCases;
+      if (s.editingId && !s.cases.some(c => c.id === s.editingId)) s.editingId = s.cases[0]?.id || null;
+      notify();
+      return;
+    }
+
+    if (localUserCases.length > 0) {
+      s.cases = localUserCases;
+      await Promise.all(localUserCases.map(c => upsertBackendCase(c)));
+      notify();
+      return;
+    }
+
+    s.cases = [];
+    s.editingId = null;
+    notify();
+  } catch (err) {
+    console.warn('Postgres 案件同步失敗，暫用 localStorage：', (err as Error).message);
+  }
+}
+
 export function useStore() {
   const [, setTick] = useState(0);
 
   useEffect(() => {
     const fn = () => setTick(t => t + 1);
     listeners.add(fn);
+    void syncCasesFromBackend();
     return () => { listeners.delete(fn); };
   }, []);
 
@@ -41,8 +103,10 @@ export function useStore() {
     const s = getState();
     const idx = s.cases.findIndex(c => c.id === id);
     if (idx >= 0) {
-      s.cases[idx] = { ...s.cases[idx], ...patch, updatedAt: new Date().toISOString() };
+      const updated = { ...s.cases[idx], ...patch, updatedAt: new Date().toISOString() };
+      s.cases[idx] = updated;
       notify();
+      void upsertBackendCase(updated).catch(err => console.warn(err.message));
     }
   }, []);
 
@@ -50,6 +114,7 @@ export function useStore() {
     const s = getState();
     s.cases.push(c);
     notify();
+    void upsertBackendCase(c).catch(err => console.warn(err.message));
   }, []);
 
   const deleteCase = useCallback((id: string) => {
@@ -57,6 +122,7 @@ export function useStore() {
     s.cases = s.cases.filter(c => c.id !== id);
     if (s.editingId === id) s.editingId = null;
     notify();
+    void deleteBackendCase(id).catch(err => console.warn(err.message));
   }, []);
 
   const setEditingId = useCallback((id: string | null) => {
