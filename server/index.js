@@ -29,6 +29,10 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'anxin-ai-proxy' });
 });
 
+app.get('/', (_req, res) => {
+  res.json({ ok: true, service: 'anxin-ai-proxy' });
+});
+
 // ===== Case CRUD =====
 app.get('/api/cases', async (_req, res) => {
   try { res.json(await getAllCases()); } catch { res.status(500).json({ error: 'Failed' }); }
@@ -203,8 +207,7 @@ app.post('/api/ai/generate', async (req, res) => {
   }
 });
 
-initDB().then(() => {
-  app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log('anxin-ai-proxy running on ' + HOST + ':' + PORT);
   if (!process.env.DEEPSEEK_API_KEY) {
     console.warn('WARNING: DEEPSEEK_API_KEY not set.');
@@ -214,8 +217,11 @@ initDB().then(() => {
   process.exit(1);
 });
 
+initDB().catch((err) => {
+  console.error('Database init failed:', err.message);
+});
+
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down...');
-  process.exit(0);
-});
+  server.close(() => process.exit(0));
 });
