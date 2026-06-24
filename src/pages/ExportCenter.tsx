@@ -16,6 +16,7 @@ export default function ExportCenter() {
   const [previewMode, setPreviewMode] = useState<'markdown' | 'pdf'>('markdown');
   const [generatingAll, setGeneratingAll] = useState(false);
   const [generatingMsg, setGeneratingMsg] = useState('');
+  const [aiCache, setAiCache] = useState<Record<string, string>>({});
   const previewRef = useRef<HTMLDivElement>(null);
 
   const mounted = useRef(false);
@@ -26,13 +27,26 @@ export default function ExportCenter() {
 
   useEffect(() => {
     if (!current) return;
+    // Clear cache when case changes
+    setAiCache({});
     generateDoc(selectedDoc);
-  }, [current?.id, selectedDoc]);
+  }, [current?.id]);
+
+  useEffect(() => {
+    if (!current) return;
+    generateDoc(selectedDoc);
+  }, [selectedDoc]);
 
   const grade = current ? computeGrade(current) : null;
 
   async function generateDoc(type: string) {
     if (!current) return;
+    // Use cached AI results for fast switching
+    if (type === 'editing' && aiCache.editing) { setMdPreview(aiCache.editing); return; }
+    if (type === 'shorts' && aiCache.shorts) { setMdPreview(aiCache.shorts); return; }
+    if (type === 'social' && aiCache.social) { setMdPreview(aiCache.social); return; }
+    if (type === 'interview' && aiCache.interview) { setMdPreview(aiCache.interview); return; }
+
     let md = '';
     switch (type) {
       case 'planning':
@@ -45,22 +59,30 @@ export default function ExportCenter() {
         md = generateShotListMarkdown(current);
         break;
       case 'editing':
+        setMdPreview('生成中...');
         const edt = await generateEditingBrief(current, [], grade);
         md = generateEditingBriefMarkdown(current, edt as EditingBrief | null, current.aiProductionContent);
+        setAiCache(prev => ({ ...prev, editing: md }));
         break;
       case 'shorts': {
+        setMdPreview('生成中...');
         const draft = isValidPlanningDraft(current.aiPlanningDraft) ? current.aiPlanningDraft! : await generatePlanningDraft(current, brandSettings);
         md = `# Shorts 題目\n\n${current.name}\n\n${(draft.shortsIdeas || []).map((s: string, i: number) => `${i + 1}. ${s}`).join('\n')}`;
+        setAiCache(prev => ({ ...prev, shorts: md }));
         break;
       }
       case 'social': {
+        setMdPreview('生成中...');
         const social = await generateSocialCopy(current, brandSettings);
         md = generateSocialCopyMarkdown(current, social as SocialCopy | null);
+        setAiCache(prev => ({ ...prev, social: md }));
         break;
       }
       case 'interview': {
+        setMdPreview('生成中...');
         const draft = isValidPlanningDraft(current.aiPlanningDraft) ? current.aiPlanningDraft! : await generatePlanningDraft(current, brandSettings);
         md = `# 訪談問題\n\n${current.name}\n\n${(draft.interviewQuestions || []).map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`;
+        setAiCache(prev => ({ ...prev, interview: md }));
         break;
       }
     }
@@ -100,6 +122,7 @@ export default function ExportCenter() {
         `---\n\n${interviewMd}`,
       ].join('\n\n');
 
+      setAiCache({ editing, shorts: shortsMd, social: socialMd, interview: interviewMd });
       setMdPreview(all);
       setSelectedDoc('all');
     } catch (err) {
