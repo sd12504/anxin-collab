@@ -25,7 +25,7 @@ app.use(cors({
     callback(null, false);
   },
 }));
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '50mb' }));
 
 // ===== Auth Setup =====
 const JWT_SECRET = process.env.JWT_SECRET || 'anxin-dev-secret-change-in-production';
