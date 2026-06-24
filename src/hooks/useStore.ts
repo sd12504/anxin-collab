@@ -19,7 +19,7 @@ async function fetchBackendCases(): Promise<CaseData[]> {
 }
 
 async function upsertBackendCase(c: CaseData): Promise<void> {
-  if (!CASE_API_URL) return;
+  if (!CASE_API_URL) throw new Error('未設定後端 API 網址');
   const res = await fetch(`${CASE_API_URL}/api/cases/${encodeURIComponent(c.id)}`, {
     method: 'PUT',
     headers: authHeaders(),
@@ -29,7 +29,7 @@ async function upsertBackendCase(c: CaseData): Promise<void> {
 }
 
 async function deleteBackendCase(id: string): Promise<void> {
-  if (!CASE_API_URL) return;
+  if (!CASE_API_URL) throw new Error('未設定後端 API 網址');
   const res = await fetch(`${CASE_API_URL}/api/cases/${encodeURIComponent(id)}`, { method: 'DELETE', headers: authHeaders() });
   if (!res.ok && res.status !== 404) throw new Error(`刪除案件失敗：${res.status}`);
 }
@@ -71,27 +71,27 @@ export function useStore() {
     return () => { listeners.delete(fn); };
   }, []);
 
-  const updateCase = useCallback((id: string, patch: Partial<CaseData>) => {
+  const updateCase = useCallback(async (id: string, patch: Partial<CaseData>) => {
     const idx = globalState.cases.findIndex(c => c.id === id);
     if (idx >= 0) {
       const updated = { ...globalState.cases[idx], ...patch, updatedAt: new Date().toISOString() };
       globalState.cases[idx] = updated;
       notify();
-      upsertBackendCase(updated).catch(err => console.warn(err.message));
+      await upsertBackendCase(updated);
     }
   }, []);
 
-  const addCase = useCallback((c: CaseData) => {
+  const addCase = useCallback(async (c: CaseData) => {
     globalState.cases.push(c);
     notify();
-    upsertBackendCase(c).catch(err => console.warn(err.message));
+    await upsertBackendCase(c);
   }, []);
 
-  const deleteCase = useCallback((id: string) => {
+  const deleteCase = useCallback(async (id: string) => {
     globalState.cases = globalState.cases.filter(c => c.id !== id);
     if (globalState.editingId === id) globalState.editingId = null;
     notify();
-    deleteBackendCase(id).catch(err => console.warn(err.message));
+    await deleteBackendCase(id);
   }, []);
 
   const setEditingId = useCallback((id: string | null) => {

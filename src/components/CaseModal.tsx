@@ -8,6 +8,8 @@ interface Props {
   editId: string | null;
   onSave: (data: Partial<CaseData>) => void;
   onClose: () => void;
+  saving?: boolean;
+  saveError?: string;
 }
 
 const caseStages: CaseStage[] = ['接案', '丈量', '設計中', '施工中', '完工'];
@@ -16,7 +18,7 @@ const houseConditions: HouseCondition[] = ['新成屋', '中古屋', '老屋', '
 const shootableOptions: Shootable[] = ['可露出', '未確認', '不建議'];
 const visibilityOptions: Visibility[] = ['可露出', '需遮蔽', '不可露出', '未確認'];
 
-export default function CaseModal({ editId, onSave, onClose }: Props) {
+export default function CaseModal({ editId, onSave, onClose, saving, saveError }: Props) {
   const { cases } = useStore();
   const existing = editId ? cases.find(c => c.id === editId) : null;
 
@@ -139,8 +141,9 @@ export default function CaseModal({ editId, onSave, onClose }: Props) {
           </div>
 
           <div className="flex justify-end gap-3 pt-5">
+            {saveError && <div className="flex-1 text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{saveError}</div>}
             <button type="button" className="btn" onClick={onClose}>取消</button>
-            <button type="submit" className="btn btn-primary">儲存</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? '儲存中...' : '儲存'}</button>
           </div>
         </form>
       </motion.div>

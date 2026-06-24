@@ -17,35 +17,49 @@ export default function CaseManagement() {
   const [pendingDeleteCase, setPendingDeleteCase] = useState<CaseData | null>(null);
   const [filterStage, setFilterStage] = useState('');
   const [page, setPage] = useState(0);
+  const [saveError, setSaveError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const filtered = filterStage ? cases.filter(c => c.stage === filterStage) : cases;
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
-  const handleSave = (data: Partial<CaseData>) => {
-    if (editId) { updateCase(editId, data); }
-    else {
-      const now = new Date().toISOString();
-      addCase({
-        id: 'case-' + Date.now(), name: '', region: '', area: '', houseCondition: '中古屋', designStyle: '',
-        stage: '接案', shootStatus: '企劃中', shootable: '可露出',
-        designer: '', photographer: '', editor: '', ownerName: '',
-        createdBy: '管理員', updatedBy: '管理員', createdAt: now, updatedAt: now,
-        problem: '', highlight: '', beforeAfter: '普通', beforeAfterNote: '',
-        beforeImage: null, afterImage: null, mustShoot: '', designerExplain: '',
-        masterExplain: '', ownerStory: '', materialColor: '', specialCraft: '',
-        addrVisible: '未確認', ownerVisible: '可露出', budgetMention: '不可露出',
-        floorplanVisible: '可露出', brandVisible: '未確認', commercialLicense: '未確認',
-        brandRestrict: '', otherRestrict: '', designerSuggest: [], grade: null,
-        ...data,
-      });
+  const handleSave = async (data: Partial<CaseData>) => {
+    setSaveError('');
+    setSaving(true);
+    try {
+      if (editId) { await updateCase(editId, data); }
+      else {
+        const now = new Date().toISOString();
+        await addCase({
+          id: 'case-' + Date.now(), name: '', region: '', area: '', houseCondition: '中古屋', designStyle: '',
+          stage: '接案', shootStatus: '企劃中', shootable: '可露出',
+          designer: '', photographer: '', editor: '', ownerName: '',
+          createdBy: '管理員', updatedBy: '管理員', createdAt: now, updatedAt: now,
+          problem: '', highlight: '', beforeAfter: '普通', beforeAfterNote: '',
+          beforeImage: null, afterImage: null, mustShoot: '', designerExplain: '',
+          masterExplain: '', ownerStory: '', materialColor: '', specialCraft: '',
+          addrVisible: '未確認', ownerVisible: '可露出', budgetMention: '不可露出',
+          floorplanVisible: '可露出', brandVisible: '未確認', commercialLicense: '未確認',
+          brandRestrict: '', otherRestrict: '', designerSuggest: [], grade: null,
+          ...data,
+        });
+      }
+      setModalOpen(false); setEditId(null);
+    } catch (err) {
+      setSaveError((err as Error).message || '儲存失敗');
+    } finally {
+      setSaving(false);
     }
-    setModalOpen(false); setEditId(null);
   };
 
-  const confirmDeleteCase = () => {
+  const confirmDeleteCase = async () => {
     if (!pendingDeleteCase) return;
-    deleteCase(pendingDeleteCase.id);
+    try {
+      await deleteCase(pendingDeleteCase.id);
+    } catch (err) {
+      alert('刪除失敗：' + (err as Error).message);
+    }
     setPendingDeleteCase(null);
   };
 
@@ -166,7 +180,7 @@ export default function CaseManagement() {
         )}
       </div>
 
-      {modalOpen && <CaseModal editId={editId} onSave={handleSave} onClose={() => setModalOpen(false)} />}
+      {modalOpen && <CaseModal editId={editId} onSave={handleSave} onClose={() => setModalOpen(false)} saving={saving} saveError={saveError} />}
 
       {pendingDeleteCase && (
         <div className="fixed inset-0 z-50 bg-gray-900/35 px-4 py-6 flex items-center justify-center" onClick={() => setPendingDeleteCase(null)}>

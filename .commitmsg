@@ -1,1 +1,1 @@
-remove localStorage caching, use backend-only data flow
+make addCase/updateCase/deleteCase await backend sync, show error in modal
