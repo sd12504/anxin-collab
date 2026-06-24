@@ -1,9 +1,92 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { Pencil, Trash2, X, Plus, ShieldCheck } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
+import { useAuth, getAuthToken } from '../hooks/useAuth';
+
+interface UserRecord {
+  id: string;
+  username: string;
+  role: string;
+  display_name: string;
+  created_at: string;
+}
+
+const ROLES = ['管理員', '設計師', '攝影', '剪輯', '外部協作者'];
+
+function getProxyUrl() {
+  return (import.meta.env.VITE_AI_PROXY_URL || '').replace(/\/$/, '');
+}
+
+async function fetchUsers(): Promise<UserRecord[]> {
+  const url = getProxyUrl();
+  if (!url) return [];
+  const token = getAuthToken();
+  const res = await fetch(`${url}/api/users`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('讀取使用者失敗');
+  return res.json();
+}
+
+async function createUserApi(data: { username: string; password: string; role: string; displayName: string }) {
+  const url = getProxyUrl();
+  const token = getAuthToken();
+  const res = await fetch(`${url}/api/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: '建立失敗' }));
+    throw new Error(err.error || '建立失敗');
+  }
+}
+
+async function updateUserApi(id: string, data: { role?: string; displayName?: string; password?: string }) {
+  const url = getProxyUrl();
+  const token = getAuthToken();
+  const res = await fetch(`${url}/api/users/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('更新失敗');
+}
+
+async function deleteUserApi(id: string) {
+  const url = getProxyUrl();
+  const token = getAuthToken();
+  const res = await fetch(`${url}/api/users/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('刪除失敗');
+}
 
 export default function SystemSettings() {
   const { cases, assets } = useStore();
+  const { user } = useAuth();
   const [cleared, setCleared] = useState(false);
+  const [users, setUsers] = useState<UserRecord[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersError, setUsersError] = useState('');
+  const [editUser, setEditUser] = useState<UserRecord | null>(null);
+  const [newUserOpen, setNewUserOpen] = useState(false);
+  const isAdmin = user?.role === '管理員';
+
+  const loadUsers = useCallback(async () => {
+    if (!isAdmin) { setUsersLoading(false); return; }
+    try {
+      setUsers(await fetchUsers());
+      setUsersError('');
+    } catch (err) {
+      setUsersError((err as Error).message);
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => { loadUsers(); }, [loadUsers]);
 
   const handleClearData = () => {
     if (!confirm('確定要清除所有資料嗎？此操作無法復原。')) return;
@@ -32,18 +115,72 @@ export default function SystemSettings() {
         </div>
       </div>
 
-      {/* Roles */}
+      {/* User Management */}
       <div className="card p-5 lg:p-6 mb-5">
-        <h3 className="font-serif font-semibold mb-4">角色規劃</h3>
-        <p className="text-sm text-gray-500 mb-3">未來版本將支援多角色登入。目前以單一使用者模式運作。</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-sm">
-          {['管理員', '設計師', '攝影', '剪輯', '外部協作者'].map(role => (
-            <div key={role} className="border border-warm-200 rounded p-3 text-center">
-              <div className="text-lg mb-1">{role === '管理員' ? '👤' : role === '設計師' ? '✏️' : role === '攝影' ? '📷' : role === '剪輯' ? '✂️' : '🔗'}</div>
-              <div className="font-medium text-xs">{role}</div>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-serif font-semibold">使用者管理</h3>
+          {isAdmin && (
+            <button className="btn btn-primary btn-sm flex items-center gap-1" onClick={() => setNewUserOpen(true)}>
+              <Plus size={14} /> 新增使用者
+            </button>
+          )}
         </div>
+
+        {!isAdmin ? (
+          <p className="text-sm text-gray-400">僅管理員可管理使用者。</p>
+        ) : usersLoading ? (
+          <p className="text-sm text-gray-400">載入中...</p>
+        ) : usersError ? (
+          <p className="text-sm text-red-500">{usersError}</p>
+        ) : (
+          <div className="overflow-x-auto -mx-1">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
+                  <th className="pb-2 font-medium">顯示名稱</th>
+                  <th className="pb-2 font-medium">帳號</th>
+                  <th className="pb-2 font-medium">角色</th>
+                  <th className="pb-2 font-medium w-20" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {users.map(u => (
+                  <tr key={u.id}>
+                    <td className="py-2.5 font-medium">{u.display_name}</td>
+                    <td className="py-2.5 text-gray-500">{u.username}</td>
+                    <td className="py-2.5"><span className="badge bg-olive-50 text-olive-700">{u.role}</span></td>
+                    <td className="py-2.5">
+                      <div className="flex gap-1">
+                        <button
+                          className="w-7 h-7 rounded text-gray-400 hover:text-olive-600 hover:bg-olive-50 inline-flex items-center justify-center"
+                          onClick={() => setEditUser(u)}
+                          title="編輯"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        {u.username !== 'admin' && (
+                          <button
+                            className="w-7 h-7 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 inline-flex items-center justify-center"
+                            onClick={async () => {
+                              if (!confirm(`確定刪除使用者「${u.display_name}」嗎？`)) return;
+                              try { await deleteUserApi(u.id); await loadUsers(); } catch { alert('刪除失敗'); }
+                            }}
+                            title="刪除"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {users.length === 0 && (
+                  <tr><td colSpan={4} className="py-6 text-center text-gray-400">尚無使用者</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Data structure */}
@@ -64,6 +201,137 @@ export default function SystemSettings() {
         <button className="btn btn-danger" onClick={handleClearData}>
           {cleared ? '已清除，重整中...' : '清除所有資料'}
         </button>
+      </div>
+
+      {/* Edit User Modal */}
+      {editUser && (
+        <UserFormModal
+          title="編輯使用者"
+          initial={{ role: editUser.role, displayName: editUser.display_name }}
+          onSave={async (data) => {
+            await updateUserApi(editUser.id, data);
+            setEditUser(null);
+            await loadUsers();
+          }}
+          onClose={() => setEditUser(null)}
+          showPassword={false}
+        />
+      )}
+
+      {/* New User Modal */}
+      {newUserOpen && (
+        <UserFormModal
+          title="新增使用者"
+          onSave={async (data) => {
+            await createUserApi(data as any);
+            setNewUserOpen(false);
+            await loadUsers();
+          }}
+          onClose={() => setNewUserOpen(false)}
+          showPassword={true}
+        />
+      )}
+    </div>
+  );
+}
+
+function UserFormModal({
+  title,
+  initial,
+  onSave,
+  onClose,
+  showPassword,
+}: {
+  title: string;
+  initial?: { role?: string; displayName?: string };
+  onSave: (data: { role: string; displayName: string; username?: string; password?: string }) => Promise<void>;
+  onClose: () => void;
+  showPassword: boolean;
+}) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState(initial?.role || '攝影');
+  const [displayName, setDisplayName] = useState(initial?.displayName || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (showPassword && (!username.trim() || !password.trim())) {
+      setError('帳號與密碼為必填'); return;
+    }
+    if (!displayName.trim()) { setError('顯示名稱為必填'); return; }
+    setSaving(true);
+    try {
+      await onSave({ username: username.trim() || undefined, password: password || undefined, role, displayName: displayName.trim() });
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-gray-900/35 px-4 py-6 flex items-center justify-center" onClick={onClose}>
+      <div className="card w-full max-w-sm p-5 shadow-2xl" onClick={e => e.stopPropagation()} role="dialog">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-serif font-semibold">{title}</h3>
+          <button className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 inline-flex items-center justify-center" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{error}</div>}
+
+          {showPassword && (
+            <>
+              <label className="block">
+                <span className="text-xs text-gray-500 mb-1 block">帳號</span>
+                <input className="input w-full" value={username} onChange={e => setUsername(e.target.value)} placeholder="英文或數字" autoFocus />
+              </label>
+              <label className="block">
+                <span className="text-xs text-gray-500 mb-1 block">密碼</span>
+                <input className="input w-full" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="至少 6 碼" />
+              </label>
+            </>
+          )}
+
+          {!showPassword && (
+            <label className="block">
+              <span className="text-xs text-gray-500 mb-1 block">新密碼</span>
+              <input className="input w-full" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="留空表示不更改" />
+            </label>
+          )}
+
+          <label className="block">
+            <span className="text-xs text-gray-500 mb-1 block">顯示名稱</span>
+            <input className="input w-full" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="例如：陳攝影師" />
+          </label>
+
+          <label className="block">
+            <span className="text-xs text-gray-500 mb-1 block">角色</span>
+            <div className="flex gap-1 flex-wrap">
+              {ROLES.map(r => (
+                <button
+                  key={r}
+                  type="button"
+                  className={`btn btn-sm ${role === r ? 'bg-olive-100 border-olive-400 text-olive-700' : ''}`}
+                  onClick={() => setRole(r)}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </label>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" className="btn btn-sm" onClick={onClose}>取消</button>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
+              {saving ? '儲存中...' : '儲存'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

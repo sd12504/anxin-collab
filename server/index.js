@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { initDB, getAllCases, getCaseById, upsertCase, deleteCaseById } from './db.js';
+import { initDB, getAllCases, getCaseById, upsertCase, deleteCaseById, getUserByUsername, getAllUsers, createUser, updateUser, deleteUser, seedDefaultAdmin } from './db.js';
 
 console.log('Starting anxin-ai-proxy...');
 console.log('PORT:', process.env.PORT || '8787');
@@ -30,15 +30,6 @@ app.use(express.json({ limit: '100kb' }));
 // ===== Auth Setup =====
 const JWT_SECRET = process.env.JWT_SECRET || 'anxin-dev-secret-change-in-production';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-
-// Hash the password once at startup
-let ADMIN_PASSWORD_HASH = null;
-(async () => {
-  const plain = process.env.ADMIN_PASSWORD || 'anxin2024';
-  ADMIN_PASSWORD_HASH = await bcrypt.hash(plain, 10);
-  console.log('Auth ready. Admin user:', ADMIN_USERNAME);
-})();
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization || '';
@@ -53,32 +44,92 @@ function authMiddleware(req, res, next) {
   }
 }
 
+function adminOnly(req, res, next) {
+  if (!req.user || req.user.role !== '管理員') {
+    return res.status(403).json({ error: '權限不足' });
+  }
+  next();
+}
+
 // ===== Auth Routes =====
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) {
     return res.status(400).json({ error: '請輸入帳號與密碼' });
   }
-  if (username !== ADMIN_USERNAME) {
-    return res.status(401).json({ error: '帳號或密碼錯誤' });
+  try {
+    const user = await getUserByUsername(username);
+    if (!user) return res.status(401).json({ error: '帳號或密碼錯誤' });
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) return res.status(401).json({ error: '帳號或密碼錯誤' });
+    const token = jwt.sign(
+      { username: user.username, role: user.role, displayName: user.display_name },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+    res.json({ ok: true, token, username: user.username, role: user.role, displayName: user.display_name });
+  } catch (err) {
+    console.error('Login error:', err.message);
+    res.status(500).json({ error: '伺服器錯誤' });
   }
-  if (!ADMIN_PASSWORD_HASH) {
-    return res.status(503).json({ error: '服務尚未就緒，請稍後再試' });
-  }
-  const valid = await bcrypt.compare(password, ADMIN_PASSWORD_HASH);
-  if (!valid) {
-    return res.status(401).json({ error: '帳號或密碼錯誤' });
-  }
-  const token = jwt.sign(
-    { username, role: 'admin' },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
-  );
-  res.json({ ok: true, token, username, role: 'admin' });
 });
 
 app.get('/api/auth/verify', authMiddleware, (req, res) => {
   res.json({ ok: true, user: req.user });
+});
+
+// ===== User Management (admin only) =====
+app.get('/api/users', authMiddleware, adminOnly, async (_req, res) => {
+  try {
+    const users = await getAllUsers();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: '讀取使用者失敗' });
+  }
+});
+
+app.post('/api/users', authMiddleware, adminOnly, async (req, res) => {
+  const { username, password, role, displayName } = req.body || {};
+  if (!username || !password || !role) {
+    return res.status(400).json({ error: '帳號、密碼、角色為必填' });
+  }
+  try {
+    const existing = await getUserByUsername(username);
+    if (existing) return res.status(409).json({ error: '帳號已存在' });
+    const hash = await bcrypt.hash(password, 10);
+    const id = 'user-' + Date.now();
+    await createUser({ id, username, passwordHash: hash, role, displayName: displayName || username });
+    res.status(201).json({ ok: true, id, username, role, displayName });
+  } catch (err) {
+    console.error('Create user error:', err.message);
+    res.status(500).json({ error: err.message || '建立使用者失敗' });
+  }
+});
+
+app.put('/api/users/:id', authMiddleware, adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const { username, password, role, displayName } = req.body || {};
+  try {
+    const patch = {};
+    if (username !== undefined) patch.username = username;
+    if (password) patch.passwordHash = await bcrypt.hash(password, 10);
+    if (role !== undefined) patch.role = role;
+    if (displayName !== undefined) patch.displayName = displayName;
+    await updateUser(id, patch);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message || '更新使用者失敗' });
+  }
+});
+
+app.delete('/api/users/:id', authMiddleware, adminOnly, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await deleteUser(id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: '刪除使用者失敗' });
+  }
 });
 
 app.get('/health', (_req, res) => {
@@ -273,7 +324,7 @@ const server = app.listen(PORT, HOST, () => {
   process.exit(1);
 });
 
-initDB().catch((err) => {
+initDB().then(() => seedDefaultAdmin()).catch((err) => {
   console.error('Database init failed:', err.message);
 });
 

@@ -5,6 +5,7 @@ const AUTH_STORAGE_KEY = 'anxin_auth';
 interface AuthUser {
   username: string;
   role: string;
+  displayName: string;
 }
 
 interface AuthState {
@@ -89,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '登入失敗');
 
-    const newUser: AuthUser = { username: data.username, role: data.role };
+    const newUser: AuthUser = { username: data.username, role: data.role, displayName: data.displayName || data.username };
     setToken(data.token);
     setUser(newUser);
     saveAuth(data.token, newUser);

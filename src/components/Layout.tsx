@@ -81,11 +81,11 @@ export default function Layout() {
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <span className="w-7 h-7 rounded-full bg-gradient-to-br from-olive-500 to-olive-700 flex items-center justify-center text-[0.6rem] font-bold flex-shrink-0">
-              {(user?.username || '管').charAt(0)}
+              {(user?.displayName || user?.username || '管').charAt(0)}
             </span>
             <div className="min-w-0 flex-1">
-              <div className="text-xs font-medium truncate">{user?.username || '管理員'}</div>
-              <div className="text-[0.55rem] text-white/35">{user?.role === 'admin' ? '管理員' : '使用者'}</div>
+              <div className="text-xs font-medium truncate">{user?.displayName || user?.username || '管理員'}</div>
+              <div className="text-[0.55rem] text-white/35">{user?.role || '使用者'}</div>
             </div>
           </div>
           <button
