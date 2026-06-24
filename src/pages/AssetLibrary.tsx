@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { FileText, Trash2, Upload, X } from 'lucide-react';
+import { FileText, Pencil, Trash2, Upload, X } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
 import type { Asset, AssetType } from '../types';
 
@@ -18,12 +18,19 @@ const demoImages = [
 const HIDDEN_DEMO_ASSETS_KEY = 'anxin_hidden_demo_assets_v1';
 
 export default function AssetLibrary() {
-  const { cases, assets, addAsset, deleteAsset } = useStore();
+  const { cases, assets, addAsset, updateAsset, deleteAsset } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterType, setFilterType] = useState<AssetType | 'all'>('all');
   const [filterCase, setFilterCase] = useState('all');
   const [query, setQuery] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadCaseId, setUploadCaseId] = useState('');
+  const [uploadType, setUploadType] = useState<AssetType>('參考圖');
+  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editCaseId, setEditCaseId] = useState('');
+  const [editType, setEditType] = useState<AssetType>('參考圖');
   const [pendingDeleteAsset, setPendingDeleteAsset] = useState<Asset | null>(null);
   const [hiddenDemoAssetIds, setHiddenDemoAssetIds] = useState<string[]>(() => {
     try {
@@ -63,10 +70,16 @@ export default function AssetLibrary() {
   });
 
   const getUploadType = (file: File): AssetType => {
-    if (filterType !== 'all') return filterType;
+    if (uploadType) return uploadType;
     if (file.type.startsWith('video/')) return '訪談素材';
     if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) return '設計圖';
     return '參考圖';
+  };
+
+  const openUploadDialog = () => {
+    setUploadCaseId(filterCase === 'all' ? cases[0]?.id || '' : filterCase);
+    setUploadType(filterType === 'all' ? '參考圖' : filterType);
+    setUploadOpen(true);
   };
 
   const readFileAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
@@ -81,9 +94,9 @@ export default function AssetLibrary() {
     e.target.value = '';
     if (!files.length) return;
 
-    const targetCaseId = filterCase === 'all' ? cases[0]?.id : filterCase;
+    const targetCaseId = uploadCaseId;
     if (!targetCaseId) {
-      alert('請先新增案件，再上傳素材。');
+      alert('請先選擇案件，再上傳素材。');
       return;
     }
 
@@ -109,6 +122,7 @@ export default function AssetLibrary() {
       alert('檔案上傳失敗。若檔案很大，請先壓縮後再試一次。');
     } finally {
       setUploading(false);
+      setUploadOpen(false);
     }
   };
 
@@ -126,6 +140,24 @@ export default function AssetLibrary() {
     }
     deleteAsset(asset.id);
     setPendingDeleteAsset(null);
+  };
+
+  const openEditAsset = (asset: Asset) => {
+    setEditingAsset(asset);
+    setEditName(asset.name);
+    setEditCaseId(asset.caseId);
+    setEditType(asset.type);
+  };
+
+  const saveEditingAsset = () => {
+    if (!editingAsset || editingAsset.id.startsWith('demo-asset-')) return;
+    updateAsset(editingAsset.id, {
+      name: editName.trim() || editingAsset.name,
+      caseId: editCaseId,
+      type: editType,
+      tags: [...new Set([editType, ...editingAsset.tags.filter(tag => !assetTypes.includes(tag as AssetType))])],
+    });
+    setEditingAsset(null);
   };
 
   return (
@@ -166,17 +198,9 @@ export default function AssetLibrary() {
               {assetTypes.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,video/*,application/pdf"
-            multiple
-            className="hidden"
-            onChange={handleUploadFiles}
-          />
           <button
             className="btn btn-primary flex items-center justify-center gap-2"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={openUploadDialog}
             disabled={uploading}
           >
             <Upload size={16} />
@@ -189,15 +213,28 @@ export default function AssetLibrary() {
             const c = cases.find(item => item.id === a.caseId);
             return (
               <article key={a.id} className="card overflow-hidden group relative">
-                <button
-                  type="button"
-                  className="absolute right-2 top-2 z-10 w-8 h-8 rounded-lg bg-white/90 border border-white/80 text-red-500 shadow-sm flex items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:bg-red-50"
-                  onClick={() => setPendingDeleteAsset(a)}
-                  aria-label={`移除 ${a.name}`}
-                  title="移除素材"
-                >
-                  <Trash2 size={15} />
-                </button>
+                <div className="absolute right-2 top-2 z-10 flex gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                  {!a.id.startsWith('demo-asset-') && (
+                    <button
+                      type="button"
+                      className="w-8 h-8 rounded-lg bg-white/90 border border-white/80 text-gray-500 shadow-sm flex items-center justify-center hover:text-olive-700 hover:bg-olive-50"
+                      onClick={() => openEditAsset(a)}
+                      aria-label={`編輯 ${a.name}`}
+                      title="編輯素材"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="w-8 h-8 rounded-lg bg-white/90 border border-white/80 text-red-500 shadow-sm flex items-center justify-center hover:bg-red-50"
+                    onClick={() => setPendingDeleteAsset(a)}
+                    aria-label={`移除 ${a.name}`}
+                    title="移除素材"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
                 <div className="aspect-[4/3] bg-gray-100">
                   {a.previewUrl?.startsWith('data:video/') ? (
                     <video src={a.previewUrl} className="w-full h-full object-cover" controls muted playsInline />
@@ -226,6 +263,94 @@ export default function AssetLibrary() {
           )}
         </div>
       </main>
+
+      {editingAsset && (
+        <div className="fixed inset-0 z-50 bg-gray-900/35 px-4 py-6 flex items-center justify-center" onClick={() => setEditingAsset(null)}>
+          <section className="card w-full max-w-md p-5 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="edit-asset-title" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h2 id="edit-asset-title" className="font-serif text-lg font-semibold text-gray-900">編輯素材</h2>
+                <p className="text-sm text-gray-500 mt-1">調整素材名稱、歸屬案件與類型。</p>
+              </div>
+              <button className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 inline-flex items-center justify-center transition-colors" onClick={() => setEditingAsset(null)} aria-label="關閉">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <label className="block">
+                <span className="label">素材名稱</span>
+                <input className="input" value={editName} onChange={e => setEditName(e.target.value)} />
+              </label>
+              <label className="block">
+                <span className="label">對應案件</span>
+                <select className="input" value={editCaseId} onChange={e => setEditCaseId(e.target.value)}>
+                  {cases.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </label>
+              <label className="block">
+                <span className="label">素材類型</span>
+                <select className="input" value={editType} onChange={e => setEditType(e.target.value as AssetType)}>
+                  {assetTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button className="btn btn-sm" onClick={() => setEditingAsset(null)}>取消</button>
+              <button className="btn btn-primary btn-sm" onClick={saveEditingAsset} disabled={!editCaseId}>儲存變更</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {uploadOpen && (
+        <div className="fixed inset-0 z-50 bg-gray-900/35 px-4 py-6 flex items-center justify-center" onClick={() => setUploadOpen(false)}>
+          <section className="card w-full max-w-md p-5 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="upload-asset-title" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h2 id="upload-asset-title" className="font-serif text-lg font-semibold text-gray-900">上傳素材</h2>
+                <p className="text-sm text-gray-500 mt-1">先選擇素材要歸到哪個案件與類型。</p>
+              </div>
+              <button className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 inline-flex items-center justify-center transition-colors" onClick={() => setUploadOpen(false)} aria-label="關閉">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <label className="block">
+                <span className="label">對應案件</span>
+                <select className="input" value={uploadCaseId} onChange={e => setUploadCaseId(e.target.value)}>
+                  <option value="" disabled>請選擇案件</option>
+                  {cases.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </label>
+              <label className="block">
+                <span className="label">素材類型</span>
+                <select className="input" value={uploadType} onChange={e => setUploadType(e.target.value as AssetType)}>
+                  {assetTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*,application/pdf"
+                multiple
+                className="hidden"
+                onChange={handleUploadFiles}
+              />
+              <button
+                className="btn btn-primary w-full flex items-center justify-center gap-2"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || !uploadCaseId}
+              >
+                <Upload size={16} />
+                {uploading ? '上傳中' : '選擇檔案並上傳'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {pendingDeleteAsset && (
         <div className="fixed inset-0 z-50 bg-gray-900/35 px-4 py-6 flex items-center justify-center" onClick={() => setPendingDeleteAsset(null)}>

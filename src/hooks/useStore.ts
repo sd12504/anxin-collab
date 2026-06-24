@@ -77,6 +77,15 @@ export function useStore() {
     notify();
   }, []);
 
+  const updateAsset = useCallback((id: string, patch: Partial<Asset>) => {
+    const s = getState();
+    const idx = s.assets.findIndex(a => a.id === id);
+    if (idx >= 0) {
+      s.assets[idx] = { ...s.assets[idx], ...patch };
+      notify();
+    }
+  }, []);
+
   const deleteAsset = useCallback((id: string) => {
     const s = getState();
     s.assets = s.assets.filter(a => a.id !== id);
@@ -98,6 +107,7 @@ export function useStore() {
     setEditingId,
     updateBrandSettings,
     addAsset,
+    updateAsset,
     deleteAsset,
     getCase,
   };

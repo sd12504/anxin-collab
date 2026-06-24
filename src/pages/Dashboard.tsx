@@ -8,9 +8,8 @@ export default function Dashboard() {
 
   const shootCounts = { '企劃中': 0, '拍攝前置': 0, '拍攝中': 0, '後期製作': 0, '已完成': 0 } as Record<string, number>;
   cases.forEach(c => { if (shootCounts[c.shootStatus] !== undefined) shootCounts[c.shootStatus]++; });
-  const total = cases.length || 1;
+  const total = cases.length;
   const doneCount = shootCounts['已完成'];
-  const activeCount = total - doneCount;
 
   const recent = [...cases].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 6);
 

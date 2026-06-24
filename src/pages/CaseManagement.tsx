@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, X } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
 import { computeGrade } from '../utils/grading';
 import type { CaseData } from '../types';
@@ -14,6 +14,7 @@ export default function CaseManagement() {
   const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [pendingDeleteCase, setPendingDeleteCase] = useState<CaseData | null>(null);
   const [filterStage, setFilterStage] = useState('');
   const [page, setPage] = useState(0);
 
@@ -40,6 +41,12 @@ export default function CaseManagement() {
       });
     }
     setModalOpen(false); setEditId(null);
+  };
+
+  const confirmDeleteCase = () => {
+    if (!pendingDeleteCase) return;
+    deleteCase(pendingDeleteCase.id);
+    setPendingDeleteCase(null);
   };
 
   return (
@@ -93,7 +100,7 @@ export default function CaseManagement() {
                       <button className="w-8 h-8 rounded-lg text-gray-500 hover:text-olive-700 hover:bg-olive-50 inline-flex items-center justify-center transition-colors" onClick={e => { e.stopPropagation(); setEditId(c.id); setModalOpen(true); }} title="編輯" aria-label={`編輯 ${c.name || '案件'}`}>
                         <Pencil size={15} strokeWidth={2} />
                       </button>
-                      <button className="w-8 h-8 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 inline-flex items-center justify-center transition-colors" onClick={e => { e.stopPropagation(); if (confirm('確定刪除這個案件？')) deleteCase(c.id); }} title="刪除" aria-label={`刪除 ${c.name || '案件'}`}>
+                      <button className="w-8 h-8 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 inline-flex items-center justify-center transition-colors" onClick={e => { e.stopPropagation(); setPendingDeleteCase(c); }} title="刪除" aria-label={`刪除 ${c.name || '案件'}`}>
                         <Trash2 size={15} strokeWidth={2} />
                       </button>
                     </div>
@@ -142,7 +149,7 @@ export default function CaseManagement() {
                 <button className="w-9 h-9 rounded-lg text-gray-500 hover:text-olive-700 hover:bg-olive-50 inline-flex items-center justify-center transition-colors border border-gray-200" onClick={e => { e.stopPropagation(); setEditId(c.id); setModalOpen(true); }} title="編輯" aria-label={`編輯 ${c.name || '案件'}`}>
                   <Pencil size={16} strokeWidth={2} />
                 </button>
-                <button className="w-9 h-9 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 inline-flex items-center justify-center transition-colors flex-shrink-0 border border-gray-200" onClick={e => { e.stopPropagation(); if (confirm('確定刪除這個案件？')) deleteCase(c.id); }} title="刪除" aria-label={`刪除 ${c.name || '案件'}`}>
+                <button className="w-9 h-9 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 inline-flex items-center justify-center transition-colors flex-shrink-0 border border-gray-200" onClick={e => { e.stopPropagation(); setPendingDeleteCase(c); }} title="刪除" aria-label={`刪除 ${c.name || '案件'}`}>
                   <Trash2 size={16} strokeWidth={2} />
                 </button>
               </div>
@@ -160,6 +167,32 @@ export default function CaseManagement() {
       </div>
 
       {modalOpen && <CaseModal editId={editId} onSave={handleSave} onClose={() => setModalOpen(false)} />}
+
+      {pendingDeleteCase && (
+        <div className="fixed inset-0 z-50 bg-gray-900/35 px-4 py-6 flex items-center justify-center" onClick={() => setPendingDeleteCase(null)}>
+          <section className="card w-full max-w-sm p-5 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="delete-case-title" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h2 id="delete-case-title" className="font-serif text-lg font-semibold text-gray-900">刪除案件</h2>
+                <p className="text-sm text-gray-500 mt-1">刪除後會從案例管理移除。</p>
+              </div>
+              <button className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 inline-flex items-center justify-center transition-colors" onClick={() => setPendingDeleteCase(null)} aria-label="關閉">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="rounded-lg border border-warm-200 bg-warm-50/60 p-3 mb-5">
+              <div className="text-xs text-gray-400 mb-1">案件名稱</div>
+              <div className="text-sm font-semibold text-gray-800 break-words">{pendingDeleteCase.name || '未命名案件'}</div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button className="btn btn-sm" onClick={() => setPendingDeleteCase(null)}>取消</button>
+              <button className="btn btn-sm bg-red-500 border-red-500 text-white hover:bg-red-600 hover:border-red-600" onClick={confirmDeleteCase}>
+                刪除案件
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

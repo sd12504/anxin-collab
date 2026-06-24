@@ -1,4 +1,5 @@
 import type { AppState, BrandSettings } from '../types';
+import { createDemoCases } from './mockData';
 
 const STORAGE_KEY = 'anxin_collab_v4';
 
@@ -17,10 +18,11 @@ export function loadState(): AppState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.cases && parsed.brandSettings) return parsed;
+      // Use saved cases if they exist and are non-empty
+      if (parsed.cases?.length > 0 && parsed.brandSettings) return parsed;
     }
   } catch { /* ignore */ }
-  return { cases: [], assets: [], brandSettings: { ...defaultBrandSettings }, editingId: null };
+  return { cases: createDemoCases(), assets: [], brandSettings: { ...defaultBrandSettings }, editingId: null };
 }
 
 export function saveState(state: AppState): void {

@@ -14,7 +14,6 @@ const shootStatuses: ShootStatus[] = ['企劃中', '拍攝前置', '拍攝中', 
 const houseConditions: HouseCondition[] = ['新成屋', '中古屋', '老屋', '商空'];
 const shootableOptions: Shootable[] = ['可露出', '未確認', '不建議'];
 const visibilityOptions: Visibility[] = ['可露出', '需遮蔽', '不可露出', '未確認'];
-const defaultCover = '/assets/cases/A1_MaBro_leak_01.jpg';
 
 export default function CaseModal({ editId, onSave, onClose }: Props) {
   const { cases } = useStore();
@@ -108,9 +107,16 @@ export default function CaseModal({ editId, onSave, onClose }: Props) {
           <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5 mb-5">
             <div className="rounded-lg overflow-hidden bg-gray-100 border border-warm-200">
               <div className="aspect-[4/3] relative">
-                <img src={coverImage || defaultCover} alt={name || '案場圖片'} className="h-full w-full object-cover" />
+                {coverImage ? (
+                  <img src={coverImage} alt={name || '案場圖片'} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-gray-400 bg-warm-50">
+                    <div className="text-sm font-medium">尚未設定圖片</div>
+                    <div className="text-xs">新增案場時可先留空</div>
+                  </div>
+                )}
                 <label className="absolute right-3 bottom-3 btn btn-sm bg-white/90 hover:bg-white cursor-pointer">
-                  更換圖片
+                  {coverImage ? '更換圖片' : '上傳圖片'}
                   <input type="file" accept="image/*" className="hidden" onChange={handleCoverImageChange} />
                 </label>
               </div>
