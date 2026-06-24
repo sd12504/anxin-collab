@@ -1,21 +1,10 @@
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { FileText, Pencil, Trash2, Upload, X } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
 import { DropdownSelect } from '../components/ui/DropdownSelect';
 import type { Asset, AssetType } from '../types';
 
 const assetTypes: AssetType[] = ['Before', '施工中', '完工', '設計圖', '參考圖', '訪談素材', '可剪Shorts片段'];
-
-const demoImages = [
-  '/assets/cases/A1_MaBro_leak_01.jpg',
-  '/assets/cases/A1_MaBro_leak_02.jpg',
-  '/assets/cases/A1_MaBro_leak_03.jpg',
-  '/assets/cases/A1_MaBro_leak_04.jpg',
-  '/assets/cases/A1_MaBro_leak_05.jpg',
-  '/assets/cases/A1_MaBro_leak_06.jpg',
-  '/assets/cases/A1_MaBro_leak_07.jpg',
-  '/assets/cases/A1_MaBro_leak_08.jpg',
-];
 
 export default function AssetLibrary() {
   const { cases, assets, addAsset, updateAsset, deleteAsset } = useStore();
@@ -32,30 +21,8 @@ export default function AssetLibrary() {
   const [editCaseId, setEditCaseId] = useState('');
   const [editType, setEditType] = useState<AssetType>('參考圖');
   const [pendingDeleteAsset, setPendingDeleteAsset] = useState<Asset | null>(null);
-  const [hiddenDemoAssetIds, setHiddenDemoAssetIds] = useState<string[]>([]);
 
-  const demoAssets = useMemo<Asset[]>(() => {
-    if (!cases.length) return [];
-    return demoImages.map((previewUrl, index) => {
-      const c = cases[index % cases.length];
-      const type = assetTypes[index % assetTypes.length];
-      return {
-        id: `demo-asset-${index + 1}`,
-        caseId: c.id,
-        type,
-        name: `${c.name} - ${type}`,
-        previewUrl,
-        uploadDate: new Date(Date.now() - index * 86400000).toISOString(),
-        tags: [c.name, type],
-        used: index % 3 === 0,
-        note: '',
-      };
-    });
-  }, [cases]);
-
-  const visibleDemoAssets = demoAssets.filter(a => !hiddenDemoAssetIds.includes(a.id));
-  const allAssets = [...visibleDemoAssets, ...assets];
-  const filtered = allAssets.filter(a => {
+  const filtered = assets.filter(a => {
     if (filterCase !== 'all' && a.caseId !== filterCase) return false;
     if (filterType !== 'all' && a.type !== filterType) return false;
     if (query.trim() && !a.name.toLowerCase().includes(query.trim().toLowerCase())) return false;
@@ -69,33 +36,20 @@ export default function AssetLibrary() {
     return '參考圖';
   };
 
-  const openUploadDialog = () => {
-    setUploadCaseId(filterCase === 'all' ? cases[0]?.id || '' : filterCase);
-    setUploadType(filterType === 'all' ? '參考圖' : filterType);
-    setUploadOpen(true);
-  };
+  const readFileAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
 
-  const readFileAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-
-  const handleUploadFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    e.target.value = '';
-    if (!files.length) return;
-
-    const targetCaseId = uploadCaseId;
-    if (!targetCaseId) {
-      alert('請先選擇案件，再上傳素材。');
-      return;
-    }
-
+  const handleUpload = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const targetCaseId = uploadCaseId || cases[0]?.id || '';
     setUploading(true);
     try {
-      for (const [index, file] of files.entries()) {
+      for (const [index, file] of Array.from(files).entries()) {
         const type = getUploadType(file);
         const canPreview = file.type.startsWith('image/') || file.type.startsWith('video/');
         const previewUrl = canPreview ? await readFileAsDataUrl(file) : null;
@@ -122,14 +76,6 @@ export default function AssetLibrary() {
   const confirmRemoveAsset = () => {
     const asset = pendingDeleteAsset;
     if (!asset) return;
-    if (asset.id.startsWith('demo-asset-')) {
-      setHiddenDemoAssetIds(prev => {
-        const next = [...new Set([...prev, asset.id])];
-        return next;
-      });
-      setPendingDeleteAsset(null);
-      return;
-    }
     deleteAsset(asset.id);
     setPendingDeleteAsset(null);
   };
@@ -142,240 +88,211 @@ export default function AssetLibrary() {
   };
 
   const saveEditingAsset = () => {
-    if (!editingAsset || editingAsset.id.startsWith('demo-asset-')) return;
+    if (!editingAsset) return;
     updateAsset(editingAsset.id, {
       name: editName.trim() || editingAsset.name,
       caseId: editCaseId,
       type: editType,
-      tags: [...new Set([editType, ...editingAsset.tags.filter(tag => !assetTypes.includes(tag as AssetType))])],
     });
     setEditingAsset(null);
   };
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-[calc(100vh-0px)]">
-      <aside className="w-full lg:w-60 bg-white/60 border-b lg:border-b-0 lg:border-r border-gray-100 p-4 flex flex-col">
-        <h1 className="font-serif font-semibold text-xl mb-4">素材庫</h1>
-        <span className="label">案件</span>
-        <DropdownSelect
-          className="mb-3"
-          buttonClassName="input text-xs"
-          value={filterCase}
-          options={[{ value: 'all', label: '所有案件' }, ...cases.map(c => ({ value: c.id, label: c.name || '未命名' }))]}
-          onChange={setFilterCase}
-          ariaLabel="篩選案件"
-        />
-        <div className="grid grid-cols-2 lg:grid-cols-1 gap-1">
-          {[{ label: '全部素材', value: 'all' as const }, ...assetTypes.map(t => ({ label: t, value: t }))].map(item => (
+    <div className="max-w-screen-2xl mx-auto px-4 lg:px-8 py-5 lg:py-7">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+        <div>
+          <h2 className="font-serif text-xl font-semibold">素材庫</h2>
+          <p className="text-sm text-gray-500 mt-1">所有案件上傳的圖片、影片與設計檔。</p>
+        </div>
+        <button
+          className="btn btn-primary btn-sm flex items-center gap-2"
+          onClick={() => {
+            setUploadCaseId(cases[0]?.id || '');
+            setUploadOpen(true);
+          }}
+        >
+          <Upload size={14} /> 上傳素材
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3 mb-5">
+        <div className="flex gap-1 flex-wrap">
+          {['all', ...assetTypes].map(t => (
             <button
-              key={item.value}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                filterType === item.value ? 'bg-olive-50 text-olive-700 font-semibold' : 'text-gray-500 hover:bg-gray-50'
-              }`}
-              onClick={() => setFilterType(item.value)}
+              key={t}
+              className={`btn btn-sm whitespace-nowrap ${filterType === t ? 'bg-olive-100 border-olive-400 text-olive-700' : ''}`}
+              onClick={() => setFilterType(t as AssetType | 'all')}
             >
-              {item.label}
+              {t === 'all' ? '全部素材' : t}
             </button>
           ))}
         </div>
-      </aside>
+        {cases.length > 0 && (
+          <DropdownSelect
+            value={filterCase}
+            options={[{ value: 'all', label: '所有案件' }, ...cases.map(c => ({ value: c.id, label: c.name || '未命名' }))]}
+            onChange={setFilterCase}
+            ariaLabel="選擇案件"
+          />
+        )}
+        <input
+          className="input flex-1 min-w-[180px] max-w-xs"
+          placeholder="搜尋素材名稱"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+        />
+      </div>
 
-      <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-5">
-          <div className="flex flex-col sm:flex-row gap-2 flex-1">
-            <input
-              className="input sm:max-w-sm"
-              placeholder="搜尋素材名稱"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-            />
-            <DropdownSelect
-              className="sm:max-w-[180px]"
-              buttonClassName="input"
-              value={filterType}
-              options={[{ value: 'all', label: '全部類型' }, ...assetTypes]}
-              onChange={value => setFilterType(value as AssetType | 'all')}
-              ariaLabel="篩選素材類型"
-            />
-          </div>
-          <button
-            className="btn btn-primary flex items-center justify-center gap-2"
-            onClick={openUploadDialog}
-            disabled={uploading}
-          >
-            <Upload size={16} />
-            {uploading ? '上傳中' : '上傳素材'}
-          </button>
+      {/* Grid */}
+      {filtered.length === 0 ? (
+        <div className="py-16 text-center text-gray-400">
+          <FileText size={32} className="mx-auto mb-3 opacity-40" />
+          <p>尚無素材</p>
+          <p className="text-xs mt-1">上傳圖片、影片或設計圖面，會依案件與類型自動分類。</p>
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {filtered.map(a => {
-            const c = cases.find(item => item.id === a.caseId);
-            return (
-              <article key={a.id} className="card overflow-hidden group relative">
-                <div className="absolute right-2 top-2 z-10 flex gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                  {!a.id.startsWith('demo-asset-') && (
-                    <button
-                      type="button"
-                      className="w-8 h-8 rounded-lg bg-white/90 border border-white/80 text-gray-500 shadow-sm flex items-center justify-center hover:text-olive-700 hover:bg-olive-50"
-                      onClick={() => openEditAsset(a)}
-                      aria-label={`編輯 ${a.name}`}
-                      title="編輯素材"
-                    >
-                      <Pencil size={15} />
-                    </button>
-                  )}
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          {filtered.map(asset => (
+            <div key={asset.id} className="card p-2 group">
+              <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 mb-2 relative">
+                {asset.previewUrl ? (
+                  asset.previewUrl.startsWith('data:video') ? (
+                    <video src={asset.previewUrl} className="h-full w-full object-cover" controls />
+                  ) : (
+                    <img src={asset.previewUrl} alt={asset.name} className="h-full w-full object-cover" />
+                  )
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-gray-300">
+                    <FileText size={28} />
+                  </div>
+                )}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1">
                   <button
-                    type="button"
-                    className="w-8 h-8 rounded-lg bg-white/90 border border-white/80 text-red-500 shadow-sm flex items-center justify-center hover:bg-red-50"
-                    onClick={() => setPendingDeleteAsset(a)}
-                    aria-label={`移除 ${a.name}`}
-                    title="移除素材"
+                    className="w-7 h-7 rounded bg-white/90 text-gray-600 hover:text-olive-700 inline-flex items-center justify-center"
+                    onClick={() => openEditAsset(asset)}
+                    title="編輯"
                   >
-                    <Trash2 size={15} />
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    className="w-7 h-7 rounded bg-white/90 text-gray-600 hover:text-red-500 inline-flex items-center justify-center"
+                    onClick={() => setPendingDeleteAsset(asset)}
+                    title="刪除"
+                  >
+                    <Trash2 size={12} />
                   </button>
                 </div>
-                <div className="aspect-[4/3] bg-gray-100">
-                  {a.previewUrl?.startsWith('data:video/') ? (
-                    <video src={a.previewUrl} className="w-full h-full object-cover" controls muted playsInline />
-                  ) : a.previewUrl ? (
-                    <img src={a.previewUrl} alt={a.name} className="w-full h-full object-cover" loading="lazy" />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-300">
-                      <FileText size={34} />
-                      <span className="text-sm">檔案</span>
-                    </div>
-                  )}
-                </div>
-                <div className="p-3">
-                  <div className="text-sm font-semibold truncate">{a.name}</div>
-                  <div className="text-xs text-gray-400 mt-1">{c?.name || '未指定案件'}</div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="badge bg-olive-50 text-olive-600 text-[0.65rem]">{a.type}</span>
-                    <span className="text-[0.65rem] text-gray-400">{new Date(a.uploadDate).toLocaleDateString('zh-TW')}</span>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-          {filtered.length === 0 && (
-            <div className="col-span-full py-16 text-center text-gray-400 text-sm">尚無符合條件的素材</div>
-          )}
-        </div>
-      </main>
-
-      {editingAsset && (
-        <div className="fixed inset-0 z-50 bg-gray-900/35 px-4 py-6 flex items-center justify-center" onClick={() => setEditingAsset(null)}>
-          <section className="card w-full max-w-md p-5 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="edit-asset-title" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <div>
-                <h2 id="edit-asset-title" className="font-serif text-lg font-semibold text-gray-900">編輯素材</h2>
-                <p className="text-sm text-gray-500 mt-1">調整素材名稱、歸屬案件與類型。</p>
               </div>
-              <button className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 inline-flex items-center justify-center transition-colors" onClick={() => setEditingAsset(null)} aria-label="關閉">
+              <div className="text-xs font-medium truncate">{asset.name}</div>
+              <div className="text-[0.6rem] text-gray-400 mt-0.5">
+                <span className="badge bg-warm-100 text-gray-500">{asset.type}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      {uploadOpen && (
+        <div className="fixed inset-0 z-50 bg-gray-900/35 px-4 py-6 flex items-center justify-center" onClick={() => setUploadOpen(false)}>
+          <div className="card w-full max-w-sm p-5 shadow-2xl" onClick={e => e.stopPropagation()} role="dialog">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif font-semibold">上傳素材</h3>
+              <button className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 inline-flex items-center justify-center" onClick={() => setUploadOpen(false)}>
                 <X size={18} />
               </button>
             </div>
-
-            <div className="space-y-4">
-              <label className="block">
-                <span className="label">素材名稱</span>
-                <input className="input" value={editName} onChange={e => setEditName(e.target.value)} />
-              </label>
-              <label className="block">
-                <span className="label">對應案件</span>
+            <div className="space-y-3">
+              {cases.length > 0 && (
+                <div>
+                  <span className="text-xs text-gray-500 mb-1 block">歸屬案件</span>
+                  <DropdownSelect
+                    value={uploadCaseId || cases[0]?.id || ''}
+                    options={cases.map(c => ({ value: c.id, label: c.name || '未命名' }))}
+                    onChange={setUploadCaseId}
+                    ariaLabel="歸屬案件"
+                  />
+                </div>
+              )}
+              <div>
+                <span className="text-xs text-gray-500 mb-1 block">素材類型</span>
                 <DropdownSelect
-                  buttonClassName="input"
+                  value={uploadType}
+                  options={assetTypes}
+                  onChange={v => setUploadType(v as AssetType)}
+                  ariaLabel="素材類型"
+                />
+              </div>
+              <label className="block">
+                <span className="text-xs text-gray-500 mb-1 block">選擇檔案</span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*,video/*,.pdf"
+                  className="input w-full"
+                  onChange={e => handleUpload(e.target.files)}
+                />
+              </label>
+              {uploading && <p className="text-sm text-olive-600">上傳中...</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingAsset && (
+        <div className="fixed inset-0 z-50 bg-gray-900/35 px-4 py-6 flex items-center justify-center" onClick={() => setEditingAsset(null)}>
+          <div className="card w-full max-w-sm p-5 shadow-2xl" onClick={e => e.stopPropagation()} role="dialog">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif font-semibold">編輯素材</h3>
+              <button className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 inline-flex items-center justify-center" onClick={() => setEditingAsset(null)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <label className="block">
+                <span className="text-xs text-gray-500 mb-1 block">素材名稱</span>
+                <input className="input w-full" value={editName} onChange={e => setEditName(e.target.value)} />
+              </label>
+              <div>
+                <span className="text-xs text-gray-500 mb-1 block">歸屬案件</span>
+                <DropdownSelect
                   value={editCaseId}
                   options={cases.map(c => ({ value: c.id, label: c.name || '未命名' }))}
                   onChange={setEditCaseId}
-                  ariaLabel="對應案件"
+                  ariaLabel="歸屬案件"
                 />
-              </label>
-              <label className="block">
-                <span className="label">素材類型</span>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500 mb-1 block">素材類型</span>
                 <DropdownSelect
-                  buttonClassName="input"
                   value={editType}
                   options={assetTypes}
-                  onChange={value => setEditType(value as AssetType)}
+                  onChange={v => setEditType(v as AssetType)}
                   ariaLabel="素材類型"
                 />
-              </label>
-            </div>
-
-            <div className="flex justify-end gap-2 mt-5">
-              <button className="btn btn-sm" onClick={() => setEditingAsset(null)}>取消</button>
-              <button className="btn btn-primary btn-sm" onClick={saveEditingAsset} disabled={!editCaseId}>儲存變更</button>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {uploadOpen && (
-        <div className="fixed inset-0 z-50 bg-gray-900/35 px-4 py-6 flex items-center justify-center" onClick={() => setUploadOpen(false)}>
-          <section className="card w-full max-w-md p-5 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="upload-asset-title" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <div>
-                <h2 id="upload-asset-title" className="font-serif text-lg font-semibold text-gray-900">上傳素材</h2>
-                <p className="text-sm text-gray-500 mt-1">先選擇素材要歸到哪個案件與類型。</p>
               </div>
-              <button className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 inline-flex items-center justify-center transition-colors" onClick={() => setUploadOpen(false)} aria-label="關閉">
-                <X size={18} />
-              </button>
+              <div className="flex justify-end gap-2 pt-2">
+                <button className="btn btn-sm" onClick={() => setEditingAsset(null)}>取消</button>
+                <button className="btn btn-primary btn-sm" onClick={saveEditingAsset}>儲存</button>
+              </div>
             </div>
-
-            <div className="space-y-4">
-              <label className="block">
-                <span className="label">對應案件</span>
-                <DropdownSelect
-                  buttonClassName="input"
-                  value={uploadCaseId}
-                  options={[{ value: '', label: '請選擇案件', disabled: true }, ...cases.map(c => ({ value: c.id, label: c.name || '未命名' }))]}
-                  onChange={setUploadCaseId}
-                  ariaLabel="對應案件"
-                />
-              </label>
-              <label className="block">
-                <span className="label">素材類型</span>
-                <DropdownSelect
-                  buttonClassName="input"
-                  value={uploadType}
-                  options={assetTypes}
-                  onChange={value => setUploadType(value as AssetType)}
-                  ariaLabel="素材類型"
-                />
-              </label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,video/*,application/pdf"
-                multiple
-                className="hidden"
-                onChange={handleUploadFiles}
-              />
-              <button
-                className="btn btn-primary w-full flex items-center justify-center gap-2"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading || !uploadCaseId}
-              >
-                <Upload size={16} />
-                {uploading ? '上傳中' : '選擇檔案並上傳'}
-              </button>
-            </div>
-          </section>
+          </div>
         </div>
       )}
 
+      {/* Delete Confirm */}
       {pendingDeleteAsset && (
         <div className="fixed inset-0 z-50 bg-gray-900/35 px-4 py-6 flex items-center justify-center" onClick={() => setPendingDeleteAsset(null)}>
-          <section className="card w-full max-w-sm p-5 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="delete-asset-title" onClick={e => e.stopPropagation()}>
+          <section className="card w-full max-w-sm p-5 shadow-2xl" role="dialog" onClick={e => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <h2 id="delete-asset-title" className="font-serif text-lg font-semibold text-gray-900">移除素材</h2>
-                <p className="text-sm text-gray-500 mt-1">這個素材會從素材庫中移除。</p>
+                <h2 className="font-serif text-lg font-semibold text-gray-900">刪除素材</h2>
+                <p className="text-sm text-gray-500 mt-1">此操作無法復原。</p>
               </div>
-              <button className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 inline-flex items-center justify-center transition-colors" onClick={() => setPendingDeleteAsset(null)} aria-label="關閉">
+              <button className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 inline-flex items-center justify-center" onClick={() => setPendingDeleteAsset(null)}>
                 <X size={18} />
               </button>
             </div>
@@ -385,8 +302,8 @@ export default function AssetLibrary() {
             </div>
             <div className="flex justify-end gap-2">
               <button className="btn btn-sm" onClick={() => setPendingDeleteAsset(null)}>取消</button>
-              <button className="btn btn-sm bg-red-500 border-red-500 text-white hover:bg-red-600 hover:border-red-600" onClick={confirmRemoveAsset}>
-                移除素材
+              <button className="btn btn-sm bg-red-500 border-red-500 text-white hover:bg-red-600" onClick={confirmRemoveAsset}>
+                刪除素材
               </button>
             </div>
           </section>
