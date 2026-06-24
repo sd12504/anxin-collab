@@ -226,17 +226,11 @@ export default function CollabBoard() {
             <EditableSelect label="屋況" value={current.houseCondition} options={houseConditions} onChange={value => update({ houseCondition: value as HouseCondition })} />
             <EditableText label="設計風格" value={current.designStyle} onChange={value => update({ designStyle: value })} />
             <EditableText label="設計師" value={current.designer} onChange={value => update({ designer: value })} />
-            <EditableText label="攝影" value={current.photographer} onChange={value => update({ photographer: value })} />
-            <EditableText label="剪輯" value={current.editor} onChange={value => update({ editor: value })} />
             <EditableText label="屋主" value={current.ownerName} onChange={value => update({ ownerName: value })} />
             <EditableSelect label="是否適合拍攝" value={current.shootable} options={shootableOptions} onChange={value => update({ shootable: value as Shootable })} />
-            <EditableSelect label="地址入鏡" value={current.addrVisible} options={visibilityOptions} onChange={value => update({ addrVisible: value as Visibility })} />
             <EditableSelect label="屋主入鏡" value={current.ownerVisible} options={visibilityOptions} onChange={value => update({ ownerVisible: value as Visibility })} />
             <EditableSelect label="預算提及" value={current.budgetMention} options={['可露出', '不可露出']} onChange={value => update({ budgetMention: value as '可露出' | '不可露出' })} />
             <EditableSelect label="平面圖露出" value={current.floorplanVisible} options={visibilityOptions} onChange={value => update({ floorplanVisible: value as Visibility })} />
-            <EditableSelect label="品牌露出" value={current.brandVisible} options={visibilityOptions} onChange={value => update({ brandVisible: value as Visibility })} />
-            <EditableSelect label="商用授權" value={current.commercialLicense} options={visibilityOptions} onChange={value => update({ commercialLicense: value as Visibility })} />
-            <EditableText label="品牌限制" value={current.brandRestrict} onChange={value => update({ brandRestrict: value })} />
           </div>
         </Modal>
       )}

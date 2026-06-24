@@ -30,16 +30,10 @@ export default function CaseModal({ editId, onSave, onClose }: Props) {
   const [stage, setStage] = useState<CaseStage>(existing?.stage || '接案');
   const [shootStatus, setShootStatus] = useState<ShootStatus>(existing?.shootStatus || '企劃中');
   const [shootable, setShootable] = useState<Shootable>(existing?.shootable || '可露出');
-  const [photographer, setPhotographer] = useState(existing?.photographer || '');
-  const [editor, setEditor] = useState(existing?.editor || '');
   const [ownerName, setOwnerName] = useState(existing?.ownerName || '');
-  const [addrVisible, setAddrVisible] = useState<Visibility>(existing?.addrVisible || '未確認');
   const [ownerVisible, setOwnerVisible] = useState<Visibility>(existing?.ownerVisible || '可露出');
   const [budgetMention, setBudgetMention] = useState<'可露出' | '不可露出'>(existing?.budgetMention || '不可露出');
   const [floorplanVisible, setFloorplanVisible] = useState<Visibility>(existing?.floorplanVisible || '可露出');
-  const [brandVisible, setBrandVisible] = useState<Visibility>(existing?.brandVisible || '未確認');
-  const [commercialLicense, setCommercialLicense] = useState<Visibility>(existing?.commercialLicense || '未確認');
-  const [brandRestrict, setBrandRestrict] = useState(existing?.brandRestrict || '');
   const [otherRestrict, setOtherRestrict] = useState(existing?.otherRestrict || '');
 
   const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,16 +59,16 @@ export default function CaseModal({ editId, onSave, onClose }: Props) {
       stage,
       shootStatus,
       shootable,
-      photographer: photographer.trim(),
-      editor: editor.trim(),
+      photographer: existing?.photographer || '',
+      editor: existing?.editor || '',
       ownerName: ownerName.trim(),
-      addrVisible,
+      addrVisible: existing?.addrVisible || '未確認',
       ownerVisible,
       budgetMention,
       floorplanVisible,
-      brandVisible,
-      commercialLicense,
-      brandRestrict: brandRestrict.trim(),
+      brandVisible: existing?.brandVisible || '未確認',
+      commercialLicense: existing?.commercialLicense || '未確認',
+      brandRestrict: existing?.brandRestrict || '',
       otherRestrict: otherRestrict.trim(),
     });
   };
@@ -137,16 +131,10 @@ export default function CaseModal({ editId, onSave, onClose }: Props) {
             <EditableSelect label="屋況" value={houseCondition} options={houseConditions} onChange={v => setHouseCondition(v as HouseCondition)} />
             <EditableText label="設計風格" value={designStyle} onChange={setDesignStyle} placeholder="例：現代簡約" />
             <EditableText label="設計師" value={designer} onChange={setDesigner} />
-            <EditableText label="攝影" value={photographer} onChange={setPhotographer} />
-            <EditableText label="剪輯" value={editor} onChange={setEditor} />
             <EditableText label="屋主" value={ownerName} onChange={setOwnerName} />
-            <EditableSelect label="地址入鏡" value={addrVisible} options={visibilityOptions} onChange={v => setAddrVisible(v as Visibility)} />
             <EditableSelect label="屋主入鏡" value={ownerVisible} options={visibilityOptions} onChange={v => setOwnerVisible(v as Visibility)} />
             <EditableSelect label="預算提及" value={budgetMention} options={['可露出', '不可露出']} onChange={v => setBudgetMention(v as '可露出' | '不可露出')} />
             <EditableSelect label="平面圖露出" value={floorplanVisible} options={visibilityOptions} onChange={v => setFloorplanVisible(v as Visibility)} />
-            <EditableSelect label="品牌露出" value={brandVisible} options={visibilityOptions} onChange={v => setBrandVisible(v as Visibility)} />
-            <EditableSelect label="商用授權" value={commercialLicense} options={visibilityOptions} onChange={v => setCommercialLicense(v as Visibility)} />
-            <EditableText label="品牌限制" value={brandRestrict} onChange={setBrandRestrict} />
             <EditableText label="其他限制" value={otherRestrict} onChange={setOtherRestrict} />
           </div>
 
