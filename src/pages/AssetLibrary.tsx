@@ -53,7 +53,7 @@ export default function AssetLibrary() {
         const type = getUploadType(file);
         const canPreview = file.type.startsWith('image/') || file.type.startsWith('video/');
         const previewUrl = canPreview ? await readFileAsDataUrl(file) : null;
-        addAsset({
+        await addAsset({
           id: `asset-${Date.now()}-${index}`,
           caseId: targetCaseId,
           type,
@@ -73,10 +73,14 @@ export default function AssetLibrary() {
     }
   };
 
-  const confirmRemoveAsset = () => {
+  const confirmRemoveAsset = async () => {
     const asset = pendingDeleteAsset;
     if (!asset) return;
-    deleteAsset(asset.id);
+    try {
+      await deleteAsset(asset.id);
+    } catch (err) {
+      alert('刪除失敗：' + (err as Error).message);
+    }
     setPendingDeleteAsset(null);
   };
 
@@ -87,13 +91,17 @@ export default function AssetLibrary() {
     setEditType(asset.type);
   };
 
-  const saveEditingAsset = () => {
+  const saveEditingAsset = async () => {
     if (!editingAsset) return;
-    updateAsset(editingAsset.id, {
-      name: editName.trim() || editingAsset.name,
-      caseId: editCaseId,
-      type: editType,
-    });
+    try {
+      await updateAsset(editingAsset.id, {
+        name: editName.trim() || editingAsset.name,
+        caseId: editCaseId,
+        type: editType,
+      });
+    } catch (err) {
+      alert('儲存失敗：' + (err as Error).message);
+    }
     setEditingAsset(null);
   };
 

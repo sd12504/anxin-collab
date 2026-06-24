@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { initDB, getAllCases, getCaseById, upsertCase, deleteCaseById, getUserByUsername, getAllUsers, createUser, updateUser, deleteUser, seedDefaultAdmin } from './db.js';
+import { initDB, getAllCases, getCaseById, upsertCase, deleteCaseById, getUserByUsername, getAllUsers, createUser, updateUser, deleteUser, seedDefaultAdmin, getAllAssets, upsertAsset, deleteAssetById } from './db.js';
 
 console.log('Starting anxin-ai-proxy...');
 console.log('PORT:', process.env.PORT || '8787');
@@ -130,6 +130,20 @@ app.delete('/api/users/:id', authMiddleware, adminOnly, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: '刪除使用者失敗' });
   }
+});
+
+// ===== Asset CRUD =====
+app.get('/api/assets', authMiddleware, async (_req, res) => {
+  try { res.json(await getAllAssets()); } catch { res.status(500).json({ error: 'Failed' }); }
+});
+app.put('/api/assets/:id', authMiddleware, async (req, res) => {
+  try {
+    await upsertAsset(req.params.id, req.body.caseId || '', req.body);
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: 'Failed' }); }
+});
+app.delete('/api/assets/:id', authMiddleware, async (req, res) => {
+  try { await deleteAssetById(req.params.id); res.json({ ok: true }); } catch { res.status(500).json({ error: 'Failed' }); }
 });
 
 app.get('/health', (_req, res) => {

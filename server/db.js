@@ -30,6 +30,14 @@ export async function initDB() {
       updated_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS assets (
+      id TEXT PRIMARY KEY,
+      case_id TEXT NOT NULL,
+      data JSONB NOT NULL,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
   console.log('PostgreSQL connected, tables ready.');
 }
 
@@ -125,6 +133,34 @@ export async function deleteUser(id) {
     return;
   }
   await pool.query('DELETE FROM users WHERE id = $1', [id]);
+}
+
+// ===== Assets =====
+const assetStore = new Map();
+
+export async function getAllAssets() {
+  if (!pool) return Array.from(assetStore.values());
+  const { rows } = await pool.query('SELECT data FROM assets ORDER BY updated_at DESC');
+  return rows.map(r => r.data);
+}
+
+export async function getAssetsByCaseId(caseId) {
+  if (!pool) return Array.from(assetStore.values()).filter(a => a.caseId === caseId);
+  const { rows } = await pool.query('SELECT data FROM assets WHERE case_id = $1 ORDER BY updated_at DESC', [caseId]);
+  return rows.map(r => r.data);
+}
+
+export async function upsertAsset(id, caseId, data) {
+  if (!pool) { assetStore.set(id, data); return; }
+  await pool.query(
+    'INSERT INTO assets (id, case_id, data, updated_at) VALUES ($1, $2, $3, NOW()) ON CONFLICT (id) DO UPDATE SET case_id = $2, data = $3, updated_at = NOW()',
+    [id, caseId, JSON.stringify(data)]
+  );
+}
+
+export async function deleteAssetById(id) {
+  if (!pool) { assetStore.delete(id); return; }
+  await pool.query('DELETE FROM assets WHERE id = $1', [id]);
 }
 
 export async function seedDefaultAdmin() {

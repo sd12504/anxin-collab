@@ -34,6 +34,30 @@ async function deleteBackendCase(id: string): Promise<void> {
   if (!res.ok && res.status !== 404) throw new Error(`刪除案件失敗：${res.status}`);
 }
 
+async function fetchBackendAssets(): Promise<Asset[]> {
+  if (!CASE_API_URL) return [];
+  const res = await fetch(`${CASE_API_URL}/api/assets`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(`讀取素材失敗：${res.status}`);
+  const data = await res.json();
+  return Array.isArray(data) ? data as Asset[] : [];
+}
+
+async function upsertBackendAsset(a: Asset): Promise<void> {
+  if (!CASE_API_URL) throw new Error('未設定後端 API 網址');
+  const res = await fetch(`${CASE_API_URL}/api/assets/${encodeURIComponent(a.id)}`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(a),
+  });
+  if (!res.ok) throw new Error(`同步素材失敗：${res.status}`);
+}
+
+async function deleteBackendAsset(id: string): Promise<void> {
+  if (!CASE_API_URL) throw new Error('未設定後端 API 網址');
+  const res = await fetch(`${CASE_API_URL}/api/assets/${encodeURIComponent(id)}`, { method: 'DELETE', headers: authHeaders() });
+  if (!res.ok && res.status !== 404) throw new Error(`刪除素材失敗：${res.status}`);
+}
+
 // In-memory state only — no localStorage cache
 let globalState: AppState = { cases: [], assets: [], brandSettings: { ...defaultBrandSettings }, editingId: null };
 const listeners = new Set<() => void>();
@@ -45,14 +69,18 @@ function notify() {
 async function loadCasesFromBackend(): Promise<void> {
   if (!CASE_API_URL) return;
   try {
-    const remote = await fetchBackendCases();
+    const [remote, remoteAssets] = await Promise.all([
+      fetchBackendCases(),
+      fetchBackendAssets(),
+    ]);
     globalState.cases = remote;
+    globalState.assets = remoteAssets;
     if (globalState.editingId && !remote.some(c => c.id === globalState.editingId)) {
       globalState.editingId = remote[0]?.id || null;
     }
     notify();
   } catch (err) {
-    console.warn('讀取後端案件失敗：', (err as Error).message);
+    console.warn('讀取後端資料失敗：', (err as Error).message);
   }
 }
 
@@ -104,22 +132,26 @@ export function useStore() {
     notify();
   }, []);
 
-  const addAsset = useCallback((a: Asset) => {
+  const addAsset = useCallback(async (a: Asset) => {
     globalState.assets.push(a);
     notify();
+    await upsertBackendAsset(a);
   }, []);
 
-  const updateAsset = useCallback((id: string, patch: Partial<Asset>) => {
+  const updateAsset = useCallback(async (id: string, patch: Partial<Asset>) => {
     const idx = globalState.assets.findIndex(a => a.id === id);
     if (idx >= 0) {
-      globalState.assets[idx] = { ...globalState.assets[idx], ...patch };
+      const updated = { ...globalState.assets[idx], ...patch };
+      globalState.assets[idx] = updated;
       notify();
+      await upsertBackendAsset(updated);
     }
   }, []);
 
-  const deleteAsset = useCallback((id: string) => {
+  const deleteAsset = useCallback(async (id: string) => {
     globalState.assets = globalState.assets.filter(a => a.id !== id);
     notify();
+    await deleteBackendAsset(id);
   }, []);
 
   const getCase = useCallback((id: string): CaseData | undefined => {
