@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Download, FileText, Printer } from 'lucide-react';
+import { Download, FileText, Printer, Zap } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
 import { generatePlanningMarkdown, generateProductionPackMarkdown, generateSocialCopyMarkdown, generateShotListMarkdown, generateEditingBriefMarkdown } from '../utils/markdown';
 import { generatePlanningDraft, generateSocialCopy, generateEditingBrief, isValidPlanningDraft, isValidProductionContent } from '../services/aiService';
@@ -13,6 +13,8 @@ export default function ExportCenter() {
   const [selectedDoc, setSelectedDoc] = useState('planning');
   const [mdPreview, setMdPreview] = useState('');
   const [previewMode, setPreviewMode] = useState<'markdown' | 'pdf'>('markdown');
+  const [generatingAll, setGeneratingAll] = useState(false);
+  const [generatingMsg, setGeneratingMsg] = useState('');
   const previewRef = useRef<HTMLDivElement>(null);
 
   const mounted = useRef(false);
@@ -64,6 +66,49 @@ export default function ExportCenter() {
     setMdPreview(md);
   }
 
+  async function generateAll() {
+    if (!current) return;
+    setGeneratingAll(true);
+    setGeneratingMsg('生成中...');
+    try {
+      const draft = isValidPlanningDraft(current.aiPlanningDraft) ? current.aiPlanningDraft! : await generatePlanningDraft(current, brandSettings);
+      setGeneratingMsg('企劃書...');
+      const planning = generatePlanningMarkdown(current, draft);
+      setGeneratingMsg('製片包...');
+      const production = generateProductionPackMarkdown(current, undefined, undefined, undefined, current.aiProductionContent);
+      setGeneratingMsg('拍攝清單...');
+      const shotlist = generateShotListMarkdown(current);
+      setGeneratingMsg('剪輯工作單...');
+      const edt = await generateEditingBrief(current, [], grade);
+      const editing = generateEditingBriefMarkdown(current, edt as EditingBrief | null, current.aiProductionContent);
+      setGeneratingMsg('社群文案...');
+      const social = await generateSocialCopy(current, brandSettings);
+      const socialMd = generateSocialCopyMarkdown(current, social as SocialCopy | null);
+      setGeneratingMsg('整合中...');
+
+      const shortsMd = `# Shorts 題目\n\n${current.name}\n\n${(draft.shortsIdeas || []).map((s: string, i: number) => `${i + 1}. ${s}`).join('\n')}`;
+      const interviewMd = `# 訪談問題\n\n${current.name}\n\n${(draft.interviewQuestions || []).map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`;
+
+      const all = [
+        planning,
+        `---\n\n${production}`,
+        `---\n\n${shotlist}`,
+        `---\n\n${editing}`,
+        `---\n\n${shortsMd}`,
+        `---\n\n${socialMd}`,
+        `---\n\n${interviewMd}`,
+      ].join('\n\n');
+
+      setMdPreview(all);
+      setSelectedDoc('all');
+    } catch (err) {
+      setMdPreview(`# 生成失敗\n\n${(err as Error).message}`);
+    } finally {
+      setGeneratingAll(false);
+      setGeneratingMsg('');
+    }
+  }
+
   const downloads = [
     { key: 'planning', label: '企劃書', desc: '案件影片企劃書' },
     { key: 'production', label: '製片包', desc: '拍攝清單 + 腳本 + 剪輯' },
@@ -78,7 +123,7 @@ export default function ExportCenter() {
     const blob = new Blob([mdPreview], { type: 'text/markdown' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${(current?.name || 'export').replace(/[\\/:*?"<>|]/g, '_')}_${selectedDoc}_${new Date().toISOString().slice(0, 10)}.md`;
+    a.download = `${(current?.name || 'export').replace(/[\\/:*?"<>|]/g, '_')}_${selectedDoc === 'all' ? 'full' : selectedDoc}_${new Date().toISOString().slice(0, 10)}.md`;
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -87,7 +132,7 @@ export default function ExportCenter() {
     const blob = new Blob([markdownToPlainText(mdPreview)], { type: 'text/plain' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${(current?.name || 'export').replace(/[\\/:*?"<>|]/g, '_')}_${selectedDoc}_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `${(current?.name || 'export').replace(/[\\/:*?"<>|]/g, '_')}_${selectedDoc === 'all' ? 'full' : selectedDoc}_${new Date().toISOString().slice(0, 10)}.txt`;
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -118,6 +163,14 @@ export default function ExportCenter() {
           <button className="btn btn-sm" onClick={() => setEditingId(null)}>切換</button>
         </div>
         <div className="text-xs text-gray-400 mb-2">{current.name} · {grade?.grade} {grade?.label}</div>
+        <button
+          className="btn btn-primary btn-sm w-full mb-3 flex items-center justify-center gap-1"
+          onClick={generateAll}
+          disabled={generatingAll}
+        >
+          <Zap size={13} />
+          {generatingAll ? generatingMsg : '一鍵生成全部'}
+        </button>
         <div className="space-y-0.5">
           {downloads.map(d => (
             <button key={d.key}
@@ -137,7 +190,7 @@ export default function ExportCenter() {
         <div className="max-w-5xl mx-auto mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="font-serif text-lg font-semibold text-gray-900">文件預覽</h1>
-            <p className="text-xs text-gray-400 mt-1">{downloads.find(d => d.key === selectedDoc)?.label} · {current.name}</p>
+            <p className="text-xs text-gray-400 mt-1">{selectedDoc === 'all' ? '完整輸出包' : downloads.find(d => d.key === selectedDoc)?.label} · {current.name}</p>
           </div>
           <div className="inline-flex rounded-lg border border-warm-200 bg-white p-1 self-start sm:self-auto">
             <button
@@ -156,7 +209,7 @@ export default function ExportCenter() {
         </div>
         <div ref={previewRef} className={previewMode === 'pdf' ? 'max-w-5xl mx-auto' : 'card p-5 lg:p-8 min-h-[60vh] max-w-4xl mx-auto'}>
           {previewMode === 'pdf' ? (
-            <PdfPreview markdown={mdPreview || '載入中...'} current={current} grade={grade} docLabel={downloads.find(d => d.key === selectedDoc)?.label || '文件'} />
+            <PdfPreview markdown={mdPreview || '載入中...'} current={current} grade={grade} docLabel={selectedDoc === 'all' ? '完整輸出包' : downloads.find(d => d.key === selectedDoc)?.label || '文件'} />
           ) : (
             <MarkdownPreview markdown={mdPreview || '載入中...'} />
           )}
@@ -170,7 +223,7 @@ export default function ExportCenter() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[0.65rem] text-white/70">輸出文件</div>
-                <div className="font-serif text-lg font-semibold mt-1">{downloads.find(d => d.key === selectedDoc)?.label}</div>
+                <div className="font-serif text-lg font-semibold mt-1">{selectedDoc === 'all' ? '完整輸出包' : downloads.find(d => d.key === selectedDoc)?.label}</div>
               </div>
               <FileText size={24} className="text-white/75" />
             </div>
