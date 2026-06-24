@@ -66,7 +66,6 @@ async function deleteUserApi(id: string) {
 export default function SystemSettings() {
   const { cases, assets } = useStore();
   const { user } = useAuth();
-  const [cleared, setCleared] = useState(false);
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [usersError, setUsersError] = useState('');
@@ -88,17 +87,6 @@ export default function SystemSettings() {
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
 
-  const handleClearData = () => {
-    if (!confirm('確定要清除所有資料嗎？此操作無法復原。')) return;
-    localStorage.removeItem('anxin_collab_v2');
-    localStorage.removeItem('anxin_collab_v3');
-    localStorage.removeItem('anxin_collab_v4');
-    localStorage.removeItem('anxin_hidden_demo_assets_v1');
-    localStorage.removeItem('anxin_ai_config');
-    setCleared(true);
-    setTimeout(() => window.location.reload(), 800);
-  };
-
   return (
     <div className="max-w-screen-lg mx-auto px-4 lg:px-8 py-5 lg:py-7">
       <h2 className="font-serif text-xl mb-5">系統設定</h2>
@@ -110,7 +98,7 @@ export default function SystemSettings() {
           <div className="flex gap-4"><span className="text-gray-400 w-24">案件總數</span><span>{cases.length}</span></div>
           <div className="flex gap-4"><span className="text-gray-400 w-24">素材總數</span><span>{assets.length}</span></div>
           <div className="flex gap-4"><span className="text-gray-400 w-24">版本</span><span>1.0.0 MVP</span></div>
-          <div className="flex gap-4"><span className="text-gray-400 w-24">資料儲存</span><span>Postgres 同步 + localStorage 快取</span></div>
+          <div className="flex gap-4"><span className="text-gray-400 w-24">資料儲存</span><span>PostgreSQL 雲端同步</span></div>
           <div className="flex gap-4"><span className="text-gray-400 w-24">技術棧</span><span>React + TypeScript + Tailwind CSS</span></div>
         </div>
       </div>
@@ -184,7 +172,7 @@ export default function SystemSettings() {
       </div>
 
       {/* Data structure */}
-      <div className="card p-5 lg:p-6 mb-5">
+      <div className="card p-5 lg:p-6">
         <h3 className="font-serif font-semibold mb-4">資料架構</h3>
         <div className="text-sm text-gray-500 space-y-1">
           <p>• 案件資料：完整案場資訊、企劃欄位、拍攝限制、團隊成員</p>
@@ -192,15 +180,6 @@ export default function SystemSettings() {
           <p>• AI Service 架構：generatePlanningDraft / generateProductionContent / generateSocialCopy / generateEditingBrief</p>
           <p>• 匯出格式：Markdown（未來擴充 PDF）</p>
         </div>
-      </div>
-
-      {/* Data management */}
-      <div className="card p-5 lg:p-6">
-        <h3 className="font-serif font-semibold mb-4 text-red-600">資料管理</h3>
-        <p className="text-sm text-gray-500 mb-4">此操作會清除本機快取與設定；Postgres 雲端案件不會被刪除。</p>
-        <button className="btn btn-danger" onClick={handleClearData}>
-          {cleared ? '已清除，重整中...' : '清除所有資料'}
-        </button>
       </div>
 
       {/* Edit User Modal */}

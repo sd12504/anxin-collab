@@ -16,7 +16,6 @@ const demoImages = [
   '/assets/cases/A1_MaBro_leak_07.jpg',
   '/assets/cases/A1_MaBro_leak_08.jpg',
 ];
-const HIDDEN_DEMO_ASSETS_KEY = 'anxin_hidden_demo_assets_v1';
 
 export default function AssetLibrary() {
   const { cases, assets, addAsset, updateAsset, deleteAsset } = useStore();
@@ -33,14 +32,7 @@ export default function AssetLibrary() {
   const [editCaseId, setEditCaseId] = useState('');
   const [editType, setEditType] = useState<AssetType>('參考圖');
   const [pendingDeleteAsset, setPendingDeleteAsset] = useState<Asset | null>(null);
-  const [hiddenDemoAssetIds, setHiddenDemoAssetIds] = useState<string[]>(() => {
-    try {
-      const raw = localStorage.getItem(HIDDEN_DEMO_ASSETS_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [hiddenDemoAssetIds, setHiddenDemoAssetIds] = useState<string[]>([]);
 
   const demoAssets = useMemo<Asset[]>(() => {
     if (!cases.length) return [];
@@ -133,7 +125,6 @@ export default function AssetLibrary() {
     if (asset.id.startsWith('demo-asset-')) {
       setHiddenDemoAssetIds(prev => {
         const next = [...new Set([...prev, asset.id])];
-        localStorage.setItem(HIDDEN_DEMO_ASSETS_KEY, JSON.stringify(next));
         return next;
       });
       setPendingDeleteAsset(null);

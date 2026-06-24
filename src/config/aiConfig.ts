@@ -1,7 +1,5 @@
 import type { AiRuntimeConfig } from '../types';
 
-const STORAGE_KEY = 'anxin_ai_config';
-
 export const DEFAULT_AI_CONFIG: AiRuntimeConfig = {
   enabled: false,
   provider: 'mock',
@@ -11,17 +9,12 @@ export const DEFAULT_AI_CONFIG: AiRuntimeConfig = {
   useBackendProxy: false,
 };
 
+let cachedConfig: AiRuntimeConfig = { ...DEFAULT_AI_CONFIG };
+
 export function getAiRuntimeConfig(): AiRuntimeConfig {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return { ...DEFAULT_AI_CONFIG, ...parsed };
-    }
-  } catch { /* ignore */ }
-  return { ...DEFAULT_AI_CONFIG };
+  return cachedConfig;
 }
 
 export function saveAiRuntimeConfig(config: AiRuntimeConfig): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  cachedConfig = { ...DEFAULT_AI_CONFIG, ...config };
 }

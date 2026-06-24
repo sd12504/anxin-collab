@@ -1,1 +1,1 @@
-remove AI planning preview card from collab board
+remove localStorage caching, use backend-only data flow
