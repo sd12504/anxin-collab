@@ -77,6 +77,12 @@ export function useStore() {
     notify();
   }, []);
 
+  const deleteAsset = useCallback((id: string) => {
+    const s = getState();
+    s.assets = s.assets.filter(a => a.id !== id);
+    notify();
+  }, []);
+
   const getCase = useCallback((id: string): CaseData | undefined => {
     return getState().cases.find(c => c.id === id);
   }, []);
@@ -92,6 +98,7 @@ export function useStore() {
     setEditingId,
     updateBrandSettings,
     addAsset,
+    deleteAsset,
     getCase,
   };
 }

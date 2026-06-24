@@ -1,6 +1,6 @@
 import type { AppState, BrandSettings } from '../types';
 
-const STORAGE_KEY = 'anxin_collab_v2';
+const STORAGE_KEY = 'anxin_collab_v4';
 
 export const defaultBrandSettings: BrandSettings = {
   coreValues: '安心、專業、真誠、透明',

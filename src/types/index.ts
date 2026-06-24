@@ -1,9 +1,10 @@
 // ===== Enums & Unions =====
 export type CaseStage = '接案' | '丈量' | '設計中' | '施工中' | '完工';
-export type ShootStatus = '未安排' | '準備中' | '拍攝中' | '已拍攝' | '剪輯中' | '已完成';
-export type Shootable = '可' | '需確認' | '不可';
+export type ShootStatus = '企劃中' | '拍攝前置' | '拍攝中' | '後期製作' | '已完成';
+export type Shootable = '可露出' | '未確認' | '不建議';
 export type BeforeAfter = '有' | '普通' | '沒有';
 export type HouseCondition = '新成屋' | '中古屋' | '老屋' | '商空';
+export type Visibility = '可露出' | '需遮蔽' | '不可露出' | '未確認';
 export type UserRole = '管理員' | '設計師' | '攝影' | '剪輯' | '外部協作者';
 export type GradeLevel = 'A' | 'B' | 'C' | 'D';
 
@@ -25,6 +26,7 @@ export interface CaseData {
   area: string;          // 坪數
   houseCondition: HouseCondition;
   designStyle: string;
+  coverImage?: string | null;
   stage: CaseStage;
   shootStatus: ShootStatus;
   shootable: Shootable;
@@ -54,12 +56,12 @@ export interface CaseData {
   specialCraft: string;      // 特殊工法
 
   // Restrictions
-  addrVisible: '可' | '需確認' | '不可';
-  ownerVisible: '可' | '需確認' | '不可';
-  budgetMention: '可' | '不可';
-  floorplanVisible: '可' | '需確認' | '不可';
-  brandVisible: '可' | '需確認' | '不可';
-  commercialLicense: '可' | '需確認' | '不可';
+  addrVisible: Visibility;
+  ownerVisible: Visibility;
+  budgetMention: '可露出' | '不可露出';
+  floorplanVisible: Visibility;
+  brandVisible: Visibility;
+  commercialLicense: Visibility;
   brandRestrict: string;
   otherRestrict: string;
 

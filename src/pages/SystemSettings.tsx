@@ -8,6 +8,9 @@ export default function SystemSettings() {
   const handleClearData = () => {
     if (!confirm('確定要清除所有資料嗎？此操作無法復原。')) return;
     localStorage.removeItem('anxin_collab_v2');
+    localStorage.removeItem('anxin_collab_v3');
+    localStorage.removeItem('anxin_collab_v4');
+    localStorage.removeItem('anxin_hidden_demo_assets_v1');
     localStorage.removeItem('anxin_ai_config');
     setCleared(true);
     setTimeout(() => window.location.reload(), 800);
