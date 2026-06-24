@@ -62,12 +62,12 @@ export function getCompletion(c: CaseData): { done: number; total: number; pct: 
   const checks = [
     !!(c.problem || '').trim(),
     !!(c.highlight || '').trim(),
-    c.beforeAfter === '有' || c.beforeAfter === '沒有',
-    !!(c.beforeAfterNote || '').trim(),
     !!(c.mustShoot || '').trim(),
     !!(c.designerExplain || '').trim(),
     !!(c.masterExplain || '').trim(),
     !!(c.ownerStory || '').trim(),
+    !!(c.materialColor || '').trim(),
+    !!(c.specialCraft || '').trim(),
   ];
   const done = checks.filter(Boolean).length;
   return { done, total: 8, pct: Math.round((done / 8) * 100) };
