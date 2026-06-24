@@ -18,16 +18,6 @@ import { generatePlanningDraft, isValidPlanningDraft } from '../services/aiServi
 import { generatePlanningMarkdown } from '../utils/markdown';
 import type { AiPlanningResult, AiStatus, CaseData, CaseStage, HouseCondition, ShootStatus, Shootable, Visibility } from '../types';
 
-const heroImages = [
-  '/assets/cases/A1_MaBro_leak_01.jpg',
-  '/assets/cases/A1_MaBro_leak_02.jpg',
-  '/assets/cases/A1_MaBro_leak_03.jpg',
-  '/assets/cases/A1_MaBro_leak_04.jpg',
-  '/assets/cases/A1_MaBro_leak_05.jpg',
-  '/assets/cases/A1_MaBro_leak_06.jpg',
-  '/assets/cases/A1_MaBro_leak_07.jpg',
-  '/assets/cases/A1_MaBro_leak_08.jpg',
-];
 const caseStages: CaseStage[] = ['接案', '丈量', '設計中', '施工中', '完工'];
 const shootStatuses: ShootStatus[] = ['企劃中', '拍攝前置', '拍攝中', '後期製作', '已完成'];
 const houseConditions: HouseCondition[] = ['新成屋', '中古屋', '老屋', '商空'];
@@ -67,8 +57,6 @@ export default function CollabBoard() {
 
   const grade = computeGrade(current);
   const completion = getCompletion(current);
-  const currentIndex = Math.max(0, cases.findIndex(c => c.id === current.id));
-  const currentImage = current.coverImage || heroImages[currentIndex % heroImages.length];
 
   const update = (patch: Partial<CaseData>) => updateCase(current.id, patch);
 
@@ -135,9 +123,16 @@ export default function CollabBoard() {
           onAction={() => setDetailOpen('case')}
         >
           <div className="mt-4 aspect-[16/9] overflow-hidden rounded-lg bg-gray-100 relative group/image">
-            <img src={currentImage} alt={`${current.name} 案件預覽`} className="h-full w-full object-cover" />
+            {current.coverImage ? (
+              <img src={current.coverImage} alt={`${current.name} 案件預覽`} className="h-full w-full object-cover" />
+            ) : (
+              <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-gray-400 bg-warm-50">
+                <div className="text-sm font-medium">尚未設定圖片</div>
+                <div className="text-xs">上傳後會同步到案件詳情</div>
+              </div>
+            )}
             <label className="absolute right-3 bottom-3 btn btn-sm bg-white/90 hover:bg-white cursor-pointer">
-              更換圖片
+              {current.coverImage ? '更換圖片' : '上傳圖片'}
               <input type="file" accept="image/*" className="hidden" onChange={handleCoverImageChange} />
             </label>
           </div>
@@ -211,7 +206,7 @@ export default function CollabBoard() {
                 ) : (
                   <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-gray-400 bg-warm-50">
                     <div className="text-sm font-medium">尚未設定圖片</div>
-                    <div className="text-xs">可從這裡上傳案件圖片</div>
+                    <div className="text-xs">上傳後會同步到協作板</div>
                   </div>
                 )}
                 <label className="absolute right-3 bottom-3 btn btn-sm bg-white/90 hover:bg-white cursor-pointer">

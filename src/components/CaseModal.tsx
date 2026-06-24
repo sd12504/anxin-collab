@@ -107,7 +107,7 @@ export default function CaseModal({ editId, onSave, onClose }: Props) {
                 ) : (
                   <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-gray-400 bg-warm-50">
                     <div className="text-sm font-medium">尚未設定圖片</div>
-                    <div className="text-xs">新增案場時可先留空</div>
+                    <div className="text-xs">上傳後會同步到協作板</div>
                   </div>
                 )}
                 <label className="absolute right-3 bottom-3 btn btn-sm bg-white/90 hover:bg-white cursor-pointer">
