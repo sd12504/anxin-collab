@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Archive,
   ClipboardList,
@@ -20,13 +20,32 @@ const visibilityOptions: Visibility[] = ['可露出', '需遮蔽', '不可露出
 
 export default function CollabBoard() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { cases, editingId, setEditingId, updateCase } = useStore();
-  const current = editingId ? cases.find(c => c.id === editingId) : cases[0] || null;
+  const caseIdFromUrl = searchParams.get('caseId');
+  const currentId = caseIdFromUrl || editingId;
+  const current = currentId ? cases.find(c => c.id === currentId) : cases[0] || null;
   const [detailOpen, setDetailOpen] = useState<'case' | 'questions' | null>(null);
 
   useEffect(() => {
-    if (!editingId && cases.length > 0) setEditingId(cases[0].id);
-  }, [cases, editingId, setEditingId]);
+    if (cases.length === 0) return;
+
+    const urlCase = caseIdFromUrl ? cases.find(c => c.id === caseIdFromUrl) : null;
+    if (urlCase) {
+      if (editingId !== urlCase.id) setEditingId(urlCase.id);
+      return;
+    }
+
+    const stateCase = editingId ? cases.find(c => c.id === editingId) : null;
+    const fallbackId = stateCase?.id || cases[0].id;
+    if (editingId !== fallbackId) setEditingId(fallbackId);
+    setSearchParams({ caseId: fallbackId }, { replace: true });
+  }, [cases, editingId, caseIdFromUrl, setEditingId, setSearchParams]);
+
+  const selectCase = (id: string) => {
+    setEditingId(id);
+    setSearchParams({ caseId: id });
+  };
 
   if (!current) {
     return (
@@ -62,7 +81,7 @@ export default function CollabBoard() {
           buttonClassName="input"
           value={current.id}
           options={cases.map(c => ({ value: c.id, label: c.name || '未命名' }))}
-          onChange={setEditingId}
+          onChange={selectCase}
           ariaLabel="選擇案件"
         />
       </div>

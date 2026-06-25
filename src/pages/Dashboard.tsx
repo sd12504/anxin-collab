@@ -6,6 +6,11 @@ export default function Dashboard() {
   const { cases, setEditingId } = useStore();
   const navigate = useNavigate();
 
+  const openCollabCase = (id: string) => {
+    setEditingId(id);
+    navigate(`/collab?caseId=${encodeURIComponent(id)}`);
+  };
+
   const shootCounts = { '企劃中': 0, '拍攝前置': 0, '拍攝中': 0, '後期製作': 0, '已完成': 0 } as Record<string, number>;
   cases.forEach(c => { if (shootCounts[c.shootStatus] !== undefined) shootCounts[c.shootStatus]++; });
   const total = cases.length;
@@ -72,7 +77,7 @@ export default function Dashboard() {
         <div className="card p-6">
           <div className="font-semibold text-sm mb-4">快速操作</div>
           <div className="space-y-2">
-            <button className="btn btn-primary w-full text-sm" onClick={() => { if (cases[0]) { setEditingId(cases[0].id); navigate('/collab'); } }}>進入協作板</button>
+            <button className="btn btn-primary w-full text-sm" onClick={() => { if (cases[0]) openCollabCase(cases[0].id); }}>進入協作板</button>
             <button className="btn w-full text-sm" onClick={() => navigate('/cases')}>案例管理</button>
             <button className="btn w-full text-sm" onClick={() => navigate('/export')}>輸出中心</button>
           </div>
@@ -88,7 +93,7 @@ export default function Dashboard() {
             const bClass = g.grade === 'A' ? 'badge-a' : g.grade === 'B' ? 'badge-b' : g.grade === 'C' ? 'badge-c' : 'badge-d';
             return (
               <div key={c.id} className="px-5 py-3 flex items-center gap-4 hover:bg-white/40 cursor-pointer text-sm"
-                onClick={() => { setEditingId(c.id); navigate('/collab'); }}>
+                onClick={() => openCollabCase(c.id)}>
                 <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-400 flex-shrink-0">
                   {c.name?.charAt(0) || '?'}
                 </span>

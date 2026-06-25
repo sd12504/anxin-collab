@@ -20,6 +20,11 @@ export default function CaseManagement() {
   const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const openCollabCase = (id: string) => {
+    setEditingId(id);
+    navigate(`/collab?caseId=${encodeURIComponent(id)}`);
+  };
+
   const filtered = filterStage ? cases.filter(c => c.stage === filterStage) : cases;
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -97,7 +102,7 @@ export default function CaseManagement() {
               const g = computeGrade(c);
               const bClass = g.grade === 'A' ? 'badge-a' : g.grade === 'B' ? 'badge-b' : g.grade === 'C' ? 'badge-c' : 'badge-d';
               return (
-                <tr key={c.id} className="hover:bg-white/40 cursor-pointer" onClick={() => { setEditingId(c.id); navigate('/collab'); }}>
+                <tr key={c.id} className="hover:bg-white/40 cursor-pointer" onClick={() => openCollabCase(c.id)}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-400 flex-shrink-0">{c.name?.charAt(0) || '?'}</span>
@@ -143,7 +148,7 @@ export default function CaseManagement() {
           const g = computeGrade(c);
           const bClass = g.grade === 'A' ? 'badge-a' : g.grade === 'B' ? 'badge-b' : g.grade === 'C' ? 'badge-c' : 'badge-d';
           return (
-            <div key={c.id} className="card p-4 cursor-pointer" onClick={() => { setEditingId(c.id); navigate('/collab'); }}>
+            <div key={c.id} className="card p-4 cursor-pointer" onClick={() => openCollabCase(c.id)}>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-400 flex-shrink-0">{c.name?.charAt(0) || '?'}</span>
