@@ -16,6 +16,7 @@ export default function CaseManagement() {
   const [editId, setEditId] = useState<string | null>(null);
   const [pendingDeleteCase, setPendingDeleteCase] = useState<CaseData | null>(null);
   const [filterStage, setFilterStage] = useState('');
+  const [filterDesigner, setFilterDesigner] = useState('');
   const [page, setPage] = useState(0);
   const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -25,7 +26,15 @@ export default function CaseManagement() {
     navigate(`/collab?caseId=${encodeURIComponent(id)}`);
   };
 
-  const filtered = filterStage ? cases.filter(c => c.stage === filterStage) : cases;
+  const designerOptions = Array.from(
+    new Set(cases.map(c => c.designer.trim()).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+
+  const filtered = cases.filter(c => {
+    if (filterStage && c.stage !== filterStage) return false;
+    if (filterDesigner && c.designer.trim() !== filterDesigner) return false;
+    return true;
+  });
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
@@ -75,12 +84,27 @@ export default function CaseManagement() {
           <h2 className="font-serif text-xl">案例管理</h2>
           <button className="btn btn-primary btn-sm flex-shrink-0" onClick={() => { setEditId(null); setModalOpen(true); }}>＋ 新增案件</button>
         </div>
-        <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hidden">
+        <div className="flex flex-wrap items-center gap-2 pb-1 -mx-1 px-1">
           {['', ...STAGES].map(s => (
             <button key={s || 'all'} className={`btn btn-sm whitespace-nowrap flex-shrink-0 ${filterStage === s ? 'bg-olive-100 border-olive-400 text-olive-700' : ''}`}
               onClick={() => { setFilterStage(s); setPage(0); }}>{s || '全部'}</button>
           ))}
-        </div>
+        {designerOptions.length > 0 && (
+          <label className="flex items-center gap-2 text-sm text-gray-500">
+            <span className="text-xs font-medium text-gray-400">設計師</span>
+            <select
+              className="input h-9 w-full max-w-xs text-sm"
+              value={filterDesigner}
+              onChange={e => { setFilterDesigner(e.target.value); setPage(0); }}
+            >
+              <option value="">全部設計師</option>
+              {designerOptions.map(designer => (
+                <option key={designer} value={designer}>{designer}</option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
       </div>
 
       {/* Desktop: table */}
@@ -89,6 +113,7 @@ export default function CaseManagement() {
           <thead>
             <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
               <th className="px-4 py-3 font-medium">案件名稱</th>
+              <th className="px-4 py-3 font-medium">設計師</th>
               <th className="px-4 py-3 font-medium">地區 / 坪數</th>
               <th className="px-4 py-3 font-medium">案件階段</th>
               <th className="px-4 py-3 font-medium">拍攝進度</th>
@@ -109,6 +134,7 @@ export default function CaseManagement() {
                       <span className="font-semibold">{c.name || '未命名'}</span>
                     </div>
                   </td>
+                  <td className="px-4 py-3 text-gray-600">{c.designer || '—'}</td>
                   <td className="px-4 py-3 text-gray-500">{c.region || '—'} {c.area ? `/ ${c.area}坪` : ''}</td>
                   <td className="px-4 py-3"><span className="badge bg-gray-100 text-gray-600">{c.stage}</span></td>
                   <td className="px-4 py-3"><span className="badge bg-olive-50 text-olive-700">{c.shootStatus}</span></td>
@@ -127,7 +153,7 @@ export default function CaseManagement() {
                 </tr>
               );
             })}
-            {paged.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">尚無案場</td></tr>}
+            {paged.length === 0 && <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">尚無案場</td></tr>}
           </tbody>
         </table>
         {totalPages > 1 && (
@@ -155,6 +181,7 @@ export default function CaseManagement() {
                   <div className="min-w-0">
                     <div className="font-semibold text-sm truncate">{c.name || '未命名'}</div>
                     <div className="text-xs text-gray-400">{c.region} · {c.area}坪</div>
+                    <div className="text-xs text-gray-400 mt-0.5">設計師：{c.designer || '未指定'}</div>
                   </div>
                 </div>
                 <span className={`badge ${bClass} flex-shrink-0`}>{g.grade} {g.label}</span>
