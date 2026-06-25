@@ -132,8 +132,6 @@ export function generatePlanningMarkdown(c: CaseData, draft?: AiPlanningResult |
 |------|------|
 | 案件名稱 | ${v(c.name)} |
 | 設計師 | ${v(c.designer)} |
-| 攝影 | ${v(c.photographer)} |
-| 剪輯 | ${v(c.editor)} |
 | 地區 | ${v(c.region)} |
 | 坪數 | ${v(c.area)} |
 | 屋況 | ${c.houseCondition} |
