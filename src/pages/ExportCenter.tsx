@@ -1,29 +1,46 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Download, FileText, Printer, Zap } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
 import { DropdownSelect } from '../components/ui/DropdownSelect';
 import { generatePlanningMarkdown, generateProductionPackMarkdown, generateSocialCopyMarkdown, generateShotListMarkdown, generateEditingBriefMarkdown } from '../utils/markdown';
-import { generatePlanningDraft, generateSocialCopy, generateEditingBrief, isValidPlanningDraft, isValidProductionContent } from '../services/aiService';
-import { generateScript } from '../services/ai';
+import { generatePlanningDraft, generateProductionContent, generateSocialCopy, generateEditingBrief, isValidPlanningDraft } from '../services/aiService';
 import { computeGrade } from '../utils/grading';
 import type { CaseData, EditingBrief, GradeResult, SocialCopy } from '../types';
 
 export default function ExportCenter() {
-  const { cases, editingId, setEditingId, brandSettings } = useStore();
-  const current = editingId ? cases.find(c => c.id === editingId) : null;
+  const { cases, editingId, setEditingId, updateCase, brandSettings } = useStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const caseIdFromUrl = searchParams.get('caseId');
+  const currentId = caseIdFromUrl || editingId;
+  const current = currentId ? cases.find(c => c.id === currentId) : null;
   const [selectedDoc, setSelectedDoc] = useState('planning');
   const [mdPreview, setMdPreview] = useState('');
   const [previewMode, setPreviewMode] = useState<'markdown' | 'pdf'>('markdown');
-  const [generatingAll, setGeneratingAll] = useState(false);
+  const [generatingCurrent, setGeneratingCurrent] = useState(false);
   const [generatingMsg, setGeneratingMsg] = useState('');
   const [aiCache, setAiCache] = useState<Record<string, string>>({});
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const mounted = useRef(false);
   useEffect(() => {
-    if (!mounted.current && !editingId && cases.length > 0) setEditingId(cases[0].id);
-    mounted.current = true;
-  }, []);
+    if (cases.length === 0) return;
+
+    const urlCase = caseIdFromUrl ? cases.find(c => c.id === caseIdFromUrl) : null;
+    if (urlCase) {
+      if (editingId !== urlCase.id) setEditingId(urlCase.id);
+      return;
+    }
+
+    const stateCase = editingId ? cases.find(c => c.id === editingId) : null;
+    const fallbackId = stateCase?.id || cases[0].id;
+    if (editingId !== fallbackId) setEditingId(fallbackId);
+    setSearchParams({ caseId: fallbackId }, { replace: true });
+  }, [cases, editingId, caseIdFromUrl, setEditingId, setSearchParams]);
+
+  const selectCase = (id: string) => {
+    setEditingId(id);
+    setSearchParams({ caseId: id });
+  };
 
   useEffect(() => {
     if (!current) return;
@@ -39,7 +56,7 @@ export default function ExportCenter() {
 
   const grade = current ? computeGrade(current) : null;
 
-  async function generateDoc(type: string) {
+  function generateDoc(type: string) {
     if (!current) return;
     // Use cached AI results for fast switching
     if (type === 'editing' && aiCache.editing) { setMdPreview(aiCache.editing); return; }
@@ -59,76 +76,72 @@ export default function ExportCenter() {
         md = generateShotListMarkdown(current);
         break;
       case 'editing':
-        setMdPreview('生成中...');
-        const edt = await generateEditingBrief(current, [], grade);
-        md = generateEditingBriefMarkdown(current, edt as EditingBrief | null, current.aiProductionContent);
-        setAiCache(prev => ({ ...prev, editing: md }));
+        md = generateEditingBriefMarkdown(current, null, current.aiProductionContent);
         break;
       case 'shorts': {
-        setMdPreview('生成中...');
-        const draft = isValidPlanningDraft(current.aiPlanningDraft) ? current.aiPlanningDraft! : await generatePlanningDraft(current, brandSettings);
-        md = `# Shorts 題目\n\n${current.name}\n\n${(draft.shortsIdeas || []).map((s: string, i: number) => `${i + 1}. ${s}`).join('\n')}`;
-        setAiCache(prev => ({ ...prev, shorts: md }));
+        const draft = isValidPlanningDraft(current.aiPlanningDraft) ? current.aiPlanningDraft! : null;
+        md = draft
+          ? `# Shorts 題目\n\n${current.name}\n\n${(draft.shortsIdeas || []).map((s: string, i: number) => `${i + 1}. ${s}`).join('\n')}`
+          : `# Shorts 題目\n\n${current.name}\n\n請按「生成目前文件」產生 Shorts 題目。`;
         break;
       }
       case 'social': {
-        setMdPreview('生成中...');
-        const social = await generateSocialCopy(current, brandSettings);
-        md = generateSocialCopyMarkdown(current, social as SocialCopy | null);
-        setAiCache(prev => ({ ...prev, social: md }));
+        md = generateSocialCopyMarkdown(current, null);
         break;
       }
       case 'interview': {
-        setMdPreview('生成中...');
-        const draft = isValidPlanningDraft(current.aiPlanningDraft) ? current.aiPlanningDraft! : await generatePlanningDraft(current, brandSettings);
-        md = `# 訪談問題\n\n${current.name}\n\n${(draft.interviewQuestions || []).map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`;
-        setAiCache(prev => ({ ...prev, interview: md }));
+        const draft = isValidPlanningDraft(current.aiPlanningDraft) ? current.aiPlanningDraft! : null;
+        md = draft
+          ? `# 訪談問題\n\n${current.name}\n\n${(draft.interviewQuestions || []).map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`
+          : `# 訪談問題\n\n${current.name}\n\n請按「生成目前文件」產生訪談問題。`;
         break;
       }
     }
     setMdPreview(md);
   }
 
-  async function generateAll() {
+  async function generateCurrentDoc() {
     if (!current) return;
-    setGeneratingAll(true);
+    if (selectedDoc === 'shotlist') {
+      generateDoc(selectedDoc);
+      return;
+    }
+    setGeneratingCurrent(true);
     setGeneratingMsg('生成中...');
     try {
-      const draft = isValidPlanningDraft(current.aiPlanningDraft) ? current.aiPlanningDraft! : await generatePlanningDraft(current, brandSettings);
-      setGeneratingMsg('企劃書...');
-      const planning = generatePlanningMarkdown(current, draft);
-      setGeneratingMsg('製片包...');
-      const production = generateProductionPackMarkdown(current, undefined, undefined, undefined, current.aiProductionContent);
-      setGeneratingMsg('拍攝清單...');
-      const shotlist = generateShotListMarkdown(current);
-      setGeneratingMsg('剪輯工作單...');
-      const edt = await generateEditingBrief(current, [], grade);
-      const editing = generateEditingBriefMarkdown(current, edt as EditingBrief | null, current.aiProductionContent);
-      setGeneratingMsg('社群文案...');
-      const social = await generateSocialCopy(current, brandSettings);
-      const socialMd = generateSocialCopyMarkdown(current, social as SocialCopy | null);
-      setGeneratingMsg('整合中...');
-
-      const shortsMd = `# Shorts 題目\n\n${current.name}\n\n${(draft.shortsIdeas || []).map((s: string, i: number) => `${i + 1}. ${s}`).join('\n')}`;
-      const interviewMd = `# 訪談問題\n\n${current.name}\n\n${(draft.interviewQuestions || []).map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`;
-
-      const all = [
-        planning,
-        `---\n\n${production}`,
-        `---\n\n${shotlist}`,
-        `---\n\n${editing}`,
-        `---\n\n${shortsMd}`,
-        `---\n\n${socialMd}`,
-        `---\n\n${interviewMd}`,
-      ].join('\n\n');
-
-      setAiCache({ editing, shorts: shortsMd, social: socialMd, interview: interviewMd });
-      setMdPreview(all);
-      setSelectedDoc('all');
+      let md = '';
+      if (selectedDoc === 'planning') {
+        const draft = await generatePlanningDraft(current, brandSettings);
+        await updateCase(current.id, { aiPlanningDraft: draft });
+        md = generatePlanningMarkdown(current, draft);
+      } else if (selectedDoc === 'production') {
+        const content = await generateProductionContent(current, brandSettings);
+        await updateCase(current.id, { aiProductionContent: content });
+        md = generateProductionPackMarkdown(current, undefined, undefined, undefined, content);
+      } else if (selectedDoc === 'editing') {
+        const edt = await generateEditingBrief(current, [], grade);
+        md = generateEditingBriefMarkdown(current, edt as EditingBrief | null, current.aiProductionContent);
+        setAiCache(prev => ({ ...prev, editing: md }));
+      } else if (selectedDoc === 'shorts') {
+        const draft = isValidPlanningDraft(current.aiPlanningDraft) ? current.aiPlanningDraft! : await generatePlanningDraft(current, brandSettings);
+        if (!isValidPlanningDraft(current.aiPlanningDraft)) await updateCase(current.id, { aiPlanningDraft: draft });
+        md = `# Shorts 題目\n\n${current.name}\n\n${(draft.shortsIdeas || []).map((s: string, i: number) => `${i + 1}. ${s}`).join('\n')}`;
+        setAiCache(prev => ({ ...prev, shorts: md }));
+      } else if (selectedDoc === 'social') {
+        const social = await generateSocialCopy(current, brandSettings);
+        md = generateSocialCopyMarkdown(current, social as SocialCopy | null);
+        setAiCache(prev => ({ ...prev, social: md }));
+      } else if (selectedDoc === 'interview') {
+        const draft = isValidPlanningDraft(current.aiPlanningDraft) ? current.aiPlanningDraft! : await generatePlanningDraft(current, brandSettings);
+        if (!isValidPlanningDraft(current.aiPlanningDraft)) await updateCase(current.id, { aiPlanningDraft: draft });
+        md = `# 訪談問題\n\n${current.name}\n\n${(draft.interviewQuestions || []).map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`;
+        setAiCache(prev => ({ ...prev, interview: md }));
+      }
+      setMdPreview(md);
     } catch (err) {
       setMdPreview(`# 生成失敗\n\n${(err as Error).message}`);
     } finally {
-      setGeneratingAll(false);
+      setGeneratingCurrent(false);
       setGeneratingMsg('');
     }
   }
@@ -147,7 +160,7 @@ export default function ExportCenter() {
     const blob = new Blob([mdPreview], { type: 'text/markdown' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${(current?.name || 'export').replace(/[\\/:*?"<>|]/g, '_')}_${selectedDoc === 'all' ? 'full' : selectedDoc}_${new Date().toISOString().slice(0, 10)}.md`;
+    a.download = `${(current?.name || 'export').replace(/[\\/:*?"<>|]/g, '_')}_${selectedDoc}_${new Date().toISOString().slice(0, 10)}.md`;
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -156,7 +169,7 @@ export default function ExportCenter() {
     const blob = new Blob([markdownToPlainText(mdPreview)], { type: 'text/plain' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${(current?.name || 'export').replace(/[\\/:*?"<>|]/g, '_')}_${selectedDoc === 'all' ? 'full' : selectedDoc}_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `${(current?.name || 'export').replace(/[\\/:*?"<>|]/g, '_')}_${selectedDoc}_${new Date().toISOString().slice(0, 10)}.txt`;
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -187,18 +200,10 @@ export default function ExportCenter() {
           <DropdownSelect
             value={current.id}
             options={cases.map(c => ({ value: c.id, label: c.name || '未命名' }))}
-            onChange={setEditingId}
+            onChange={selectCase}
             ariaLabel="選擇案件"
           />
         </div>
-        <button
-          className="btn btn-primary btn-sm w-full mb-3 flex items-center justify-center gap-1"
-          onClick={generateAll}
-          disabled={generatingAll}
-        >
-          <Zap size={13} />
-          {generatingAll ? generatingMsg : '一鍵生成全部'}
-        </button>
         <div className="space-y-0.5">
           {downloads.map(d => (
             <button key={d.key}
@@ -218,26 +223,36 @@ export default function ExportCenter() {
         <div className="max-w-5xl mx-auto mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="font-serif text-lg font-semibold text-gray-900">文件預覽</h1>
-            <p className="text-xs text-gray-400 mt-1">{selectedDoc === 'all' ? '完整輸出包' : downloads.find(d => d.key === selectedDoc)?.label} · {current.name}</p>
+            <p className="text-xs text-gray-400 mt-1">{downloads.find(d => d.key === selectedDoc)?.label} · {current.name}</p>
           </div>
-          <div className="inline-flex rounded-lg border border-warm-200 bg-white p-1 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
             <button
-              className={`px-3 py-1.5 rounded-md text-xs transition-colors ${previewMode === 'markdown' ? 'bg-olive-600 text-white' : 'text-gray-500 hover:bg-warm-50'}`}
-              onClick={() => setPreviewMode('markdown')}
+              className="btn btn-primary btn-sm inline-flex items-center justify-center gap-1"
+              onClick={generateCurrentDoc}
+              disabled={generatingCurrent || selectedDoc === 'shotlist'}
             >
-              Markdown
+              <Zap size={13} />
+              {generatingCurrent ? generatingMsg : selectedDoc === 'shotlist' ? '不需生成' : '生成目前文件'}
             </button>
-            <button
-              className={`px-3 py-1.5 rounded-md text-xs transition-colors ${previewMode === 'pdf' ? 'bg-olive-600 text-white' : 'text-gray-500 hover:bg-warm-50'}`}
-              onClick={() => setPreviewMode('pdf')}
-            >
-              PDF 預覽
-            </button>
+            <div className="inline-flex rounded-lg border border-warm-200 bg-white p-1">
+              <button
+                className={`px-3 py-1.5 rounded-md text-xs transition-colors ${previewMode === 'markdown' ? 'bg-olive-600 text-white' : 'text-gray-500 hover:bg-warm-50'}`}
+                onClick={() => setPreviewMode('markdown')}
+              >
+                Markdown
+              </button>
+              <button
+                className={`px-3 py-1.5 rounded-md text-xs transition-colors ${previewMode === 'pdf' ? 'bg-olive-600 text-white' : 'text-gray-500 hover:bg-warm-50'}`}
+                onClick={() => setPreviewMode('pdf')}
+              >
+                PDF 預覽
+              </button>
+            </div>
           </div>
         </div>
         <div ref={previewRef} className={previewMode === 'pdf' ? 'max-w-5xl mx-auto' : 'card p-5 lg:p-8 min-h-[60vh] max-w-4xl mx-auto'}>
           {previewMode === 'pdf' ? (
-            <PdfPreview markdown={mdPreview || '載入中...'} current={current} grade={grade} docLabel={selectedDoc === 'all' ? '完整輸出包' : downloads.find(d => d.key === selectedDoc)?.label || '文件'} />
+            <PdfPreview markdown={mdPreview || '載入中...'} current={current} grade={grade} docLabel={downloads.find(d => d.key === selectedDoc)?.label || '文件'} />
           ) : (
             <MarkdownPreview markdown={mdPreview || '載入中...'} />
           )}
@@ -251,7 +266,7 @@ export default function ExportCenter() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[0.65rem] text-white/70">輸出文件</div>
-                <div className="font-serif text-lg font-semibold mt-1">{selectedDoc === 'all' ? '完整輸出包' : downloads.find(d => d.key === selectedDoc)?.label}</div>
+                <div className="font-serif text-lg font-semibold mt-1">{downloads.find(d => d.key === selectedDoc)?.label}</div>
               </div>
               <FileText size={24} className="text-white/75" />
             </div>

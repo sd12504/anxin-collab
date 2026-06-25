@@ -4,7 +4,7 @@ export const DEFAULT_AI_CONFIG: AiRuntimeConfig = {
   enabled: false,
   provider: 'mock',
   baseUrl: 'https://api.deepseek.com',
-  model: 'deepseek-v4-pro',
+  model: 'deepseek-chat',
   apiKey: '',
   useBackendProxy: false,
 };

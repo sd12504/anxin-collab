@@ -8,7 +8,7 @@ import { initDB, getAllCases, getCaseById, upsertCase, deleteCaseById, getUserBy
 console.log('Starting anxin-ai-proxy...');
 console.log('PORT:', process.env.PORT || '8787');
 console.log('DEEPSEEK_API_KEY:', process.env.DEEPSEEK_API_KEY ? '***configured***' : 'NOT SET');
-console.log('DEEPSEEK_MODEL:', process.env.DEEPSEEK_MODEL || 'deepseek-v4-pro');
+console.log('DEEPSEEK_MODEL:', process.env.DEEPSEEK_MODEL || 'deepseek-chat');
 
 const app = express();
 const PORT = process.env.PORT || 8787;
@@ -282,7 +282,7 @@ app.post('/api/ai/generate', authMiddleware, async (req, res) => {
 
   const schema = SCHEMAS[type] || SCHEMAS.planning;
   const baseUrl = process.env.DEEPSEEK_API_BASE_URL || 'https://api.deepseek.com';
-  const aiModel = model || process.env.DEEPSEEK_MODEL || 'deepseek-v4-pro';
+  const aiModel = model || process.env.DEEPSEEK_MODEL || 'deepseek-chat';
 
   try {
     const response = await fetch(baseUrl + '/v1/chat/completions', {

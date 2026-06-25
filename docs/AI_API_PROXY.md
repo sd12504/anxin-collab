@@ -31,7 +31,7 @@ DEEPSEEK_API_KEY=請在後端環境變數填入，不要寫進 GitHub
 ```json
 {
   "provider": "deepseek",
-  "model": "deepseek-v4-pro",
+  "model": "deepseek-chat",
   "prompt": "你是室內設計影音企劃專家。請根據以下案場資料..."
 }
 ```
@@ -54,7 +54,7 @@ app.post('/api/ai/generate', async (req, res) => {
       'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: model || 'deepseek-v4-pro',
+      model: model || 'deepseek-chat',
       messages: [
         { role: 'system', content: '你是室內設計影音企劃專家。請以結構化 JSON 格式回覆。' },
         { role: 'user', content: prompt },

@@ -27,7 +27,7 @@ Railway 會自動執行以下設定（來自 railway.json）：
 | Variable | 值 |
 |---|---|
 | DEEPSEEK_API_KEY | sk-xxxxxxxxxxxxxxxx（你的 DeepSeek API key） |
-| DEEPSEEK_MODEL | deepseek-v4-pro |
+| DEEPSEEK_MODEL | deepseek-chat |
 | FRONTEND_ORIGIN | 前端部署網址，例如 https://anxin-collab.vercel.app |
 | PORT | 8787 |
 

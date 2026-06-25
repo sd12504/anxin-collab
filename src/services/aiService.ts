@@ -127,7 +127,7 @@ export async function generatePlanningDraft(caseData: CaseData, brandSettings: B
   if (AI_PROXY_URL) {
     try {
       var raw = await callBackendProxy('generate', {
-        provider: 'deepseek', model: 'deepseek-v4-pro',
+        provider: 'deepseek', model: 'deepseek-chat',
         prompt: buildPlanningPrompt(safe, brandSettings), type: 'planning',
       });
       var result = raw as AiPlanningResult;
@@ -144,7 +144,7 @@ export async function generateProductionContent(caseData: CaseData, brandSetting
   if (AI_PROXY_URL) {
     try {
       var raw = await callBackendProxy('generate', {
-        provider: 'deepseek', model: 'deepseek-v4-pro',
+        provider: 'deepseek', model: 'deepseek-chat',
         prompt: buildProductionPrompt(safe, brandSettings), type: 'production',
       });
       var result = raw as AiProductionResult;
@@ -161,7 +161,7 @@ export async function generateSocialCopy(caseData: CaseData, brandSettings: Bran
   if (AI_PROXY_URL) {
     try {
       return await callBackendProxy('generate', {
-        provider: 'deepseek', model: 'deepseek-v4-pro',
+        provider: 'deepseek', model: 'deepseek-chat',
         prompt: buildSocialPrompt(safe, brandSettings), type: 'social',
       });
     } catch (err) { console.warn('社群文案 API 失敗，使用 Mock：', (err as Error).message); }
@@ -175,7 +175,7 @@ export async function generateEditingBrief(caseData: CaseData, _assets: unknown[
   if (AI_PROXY_URL) {
     try {
       return await callBackendProxy('generate', {
-        provider: 'deepseek', model: 'deepseek-v4-pro',
+        provider: 'deepseek', model: 'deepseek-chat',
         prompt: buildEditingPrompt(safe), type: 'editing',
       });
     } catch (err) { console.warn('剪輯工作單 API 失敗，使用 Mock：', (err as Error).message); }
