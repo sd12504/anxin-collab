@@ -5,6 +5,7 @@ import { useStore } from '../hooks/useStore';
 import { computeGrade } from '../utils/grading';
 import type { CaseData } from '../types';
 import CaseModal from '../components/CaseModal';
+import { DropdownSelect } from '../components/ui/DropdownSelect';
 
 const STAGES = ['接案', '丈量', '設計中', '施工中', '完工'];
 const PAGE_SIZE = 8;
@@ -84,27 +85,30 @@ export default function CaseManagement() {
           <h2 className="font-serif text-xl">案例管理</h2>
           <button className="btn btn-primary btn-sm flex-shrink-0" onClick={() => { setEditId(null); setModalOpen(true); }}>＋ 新增案件</button>
         </div>
-        <div className="flex flex-wrap items-center gap-2 pb-1 -mx-1 px-1">
-          {['', ...STAGES].map(s => (
-            <button key={s || 'all'} className={`btn btn-sm whitespace-nowrap flex-shrink-0 ${filterStage === s ? 'bg-olive-100 border-olive-400 text-olive-700' : ''}`}
-              onClick={() => { setFilterStage(s); setPage(0); }}>{s || '全部'}</button>
-          ))}
-        {designerOptions.length > 0 && (
-          <label className="flex items-center gap-2 text-sm text-gray-500">
-            <span className="text-xs font-medium text-gray-400">設計師</span>
-            <select
-              className="input h-9 w-full max-w-xs text-sm"
-              value={filterDesigner}
-              onChange={e => { setFilterDesigner(e.target.value); setPage(0); }}
-            >
-              <option value="">全部設計師</option>
-              {designerOptions.map(designer => (
-                <option key={designer} value={designer}>{designer}</option>
-              ))}
-            </select>
-          </label>
-        )}
-      </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center pb-1 -mx-1 px-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {['', ...STAGES].map(s => (
+              <button key={s || 'all'} className={`btn btn-sm whitespace-nowrap flex-shrink-0 ${filterStage === s ? 'bg-olive-100 border-olive-400 text-olive-700' : ''}`}
+                onClick={() => { setFilterStage(s); setPage(0); }}>{s || '全部'}</button>
+            ))}
+          </div>
+          {designerOptions.length > 0 && (
+            <label className="flex w-full items-center gap-2 text-sm text-gray-500 sm:w-auto sm:flex-shrink-0">
+              <span className="min-w-12 shrink-0 whitespace-nowrap text-xs font-medium text-gray-400">設計師</span>
+              <DropdownSelect
+                className="w-full min-w-44 sm:w-48 md:w-56"
+                buttonClassName="input h-9 px-3 bg-white/95 hover:bg-white"
+                value={filterDesigner}
+                options={[
+                  { value: '', label: '全部設計師' },
+                  ...designerOptions.map(designer => ({ value: designer, label: designer })),
+                ]}
+                onChange={value => { setFilterDesigner(value); setPage(0); }}
+                ariaLabel="篩選設計師"
+              />
+            </label>
+          )}
+        </div>
       </div>
 
       {/* Desktop: table */}

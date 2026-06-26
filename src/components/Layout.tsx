@@ -3,9 +3,10 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Archive, BriefcaseBusiness, Download, Home, LayoutDashboard,
-  Search, Settings, ShieldCheck, Bell, LogOut,
+  Search, Settings, ShieldCheck, Bell, LogOut, Menu, ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useStore } from '../hooks/useStore';
 
 const tabs = [
   { to: '/', label: '總覽', Icon: Home },
@@ -19,37 +20,101 @@ const tabs = [
 
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [caseQuery, setCaseQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { cases, setEditingId } = useStore();
+  const normalizedQuery = caseQuery.trim().toLowerCase();
+  const caseResults = normalizedQuery
+    ? cases.filter(c => {
+      const haystack = [c.name, c.region, c.designer, c.stage, c.shootStatus]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(normalizedQuery);
+    }).slice(0, 5)
+    : [];
+  const showCaseResults = searchFocused && caseQuery.trim().length > 0;
+
+  const openCase = (id: string) => {
+    setEditingId(id);
+    setCaseQuery('');
+    setSearchFocused(false);
+    setMenuOpen(false);
+    navigate(`/collab?caseId=${encodeURIComponent(id)}`);
+  };
 
   return (
-    <div className="min-h-screen flex bg-[#faf8f4]">
+    <div className="min-h-screen flex">
       {/* Mobile overlay */}
       {menuOpen && <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setMenuOpen(false)} />}
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:sticky top-0 left-0 z-50 h-screen w-56
-        bg-[#151922] text-white flex flex-col
-        transition-transform duration-200
+        fixed lg:sticky top-0 left-0 z-50 h-screen w-60
+        bg-sidebar-500 text-white flex flex-col
+        transition-transform duration-200 shadow-2xl shadow-sidebar-900/20
         ${menuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Brand */}
-        <NavLink to="/" className="flex items-center gap-2.5 px-4 py-4 border-b border-white/8" onClick={() => setMenuOpen(false)}>
-          <span className="w-8 h-8 rounded-lg bg-olive-600 flex items-center justify-center text-sm font-bold">安</span>
+        <NavLink to="/" className="flex items-center gap-3 px-4 py-4 border-b border-white/8" onClick={() => setMenuOpen(false)}>
+          <span className="w-9 h-9 rounded-lg bg-olive-500 flex items-center justify-center text-sm font-bold shadow-lg shadow-olive-900/20">安</span>
           <div>
-            <div className="font-serif font-semibold text-sm tracking-wide">安心整合</div>
-            <div className="text-[0.6rem] text-white/40">設計協作板</div>
+            <div className="font-serif font-semibold text-base tracking-wide">安心整合</div>
+            <div className="text-[0.65rem] text-white/45">Design Ops Workspace</div>
           </div>
         </NavLink>
 
         {/* Search */}
-        <div className="px-3 py-3">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/6 text-white/40 text-xs">
+        <div className="px-3 py-3 relative">
+          <label className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/7 text-white/45 text-xs border border-white/8 focus-within:border-olive-400/60 focus-within:text-white/80 transition-colors">
             <Search size={14} />
-            <span>搜尋案件...</span>
-          </div>
+            <input
+              className="w-full min-w-0 bg-transparent outline-none placeholder:text-white/35"
+              placeholder="搜尋案件..."
+              aria-label="搜尋案件"
+              value={caseQuery}
+              onChange={e => setCaseQuery(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && caseResults[0]) openCase(caseResults[0].id);
+                if (e.key === 'Escape') {
+                  setCaseQuery('');
+                  setSearchFocused(false);
+                }
+              }}
+            />
+          </label>
+          {showCaseResults && (
+            <div className="absolute left-3 right-3 top-[3.35rem] z-50 overflow-hidden rounded-lg border border-white/10 bg-sidebar-400 shadow-2xl shadow-sidebar-900/35">
+              {caseResults.length > 0 ? (
+                <div className="max-h-72 overflow-y-auto py-1">
+                  {caseResults.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className="w-full px-3 py-2.5 text-left hover:bg-white/8 focus:bg-white/8 focus:outline-none transition-colors"
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => openCase(c.id)}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 text-sm font-semibold text-white truncate">{c.name || '未命名案件'}</span>
+                        <ArrowRight size={14} className="text-white/35 flex-shrink-0" />
+                      </div>
+                      <div className="mt-1 text-[0.68rem] text-white/45 truncate">
+                        {[c.region, c.designer, c.shootStatus].filter(Boolean).join(' · ') || '尚無補充資訊'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-3 py-3 text-xs text-white/45">找不到符合的案件</div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Nav */}
@@ -61,8 +126,8 @@ export default function Layout() {
               end={t.to === '/'}
               onClick={() => setMenuOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mb-0.5 transition-all duration-150 ${
-                  isActive ? 'bg-white/12 text-white font-semibold' : 'text-white/55 hover:text-white hover:bg-white/6'
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mb-1 transition-all duration-150 ${
+                  isActive ? 'bg-white/12 text-white font-semibold shadow-[inset_3px_0_0_rgba(132,158,92,0.95)]' : 'text-white/58 hover:text-white hover:bg-white/7'
                 }`
               }
             >
@@ -74,7 +139,7 @@ export default function Layout() {
 
         {/* Bottom bar: notification + user */}
         <div className="px-4 py-3 border-t border-white/8 flex items-center gap-3">
-          <button className="relative p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/8 transition-colors">
+          <button className="relative p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/8 transition-colors" aria-label="通知">
             <Bell size={16} />
             <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-rose-400" />
           </button>
@@ -98,18 +163,16 @@ export default function Layout() {
       </aside>
 
       {/* Mobile header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 h-12 bg-[#151922] flex items-center px-4 gap-3">
-        <button className="text-white/80 hover:text-white" onClick={() => setMenuOpen(true)}>
-          <svg width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="1" y1="1" x2="17" y2="1" /><line x1="1" y1="7" x2="17" y2="7" /><line x1="1" y1="13" x2="17" y2="13" />
-          </svg>
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 h-14 bg-sidebar-500 flex items-center px-4 gap-3 shadow-lg shadow-sidebar-900/15">
+        <button className="w-9 h-9 rounded-lg text-white/80 hover:text-white hover:bg-white/8 inline-flex items-center justify-center" onClick={() => setMenuOpen(true)} aria-label="開啟選單">
+          <Menu size={20} />
         </button>
-        <span className="w-7 h-7 rounded-lg bg-olive-600 flex items-center justify-center text-xs font-bold text-white">安</span>
+        <span className="w-8 h-8 rounded-lg bg-olive-500 flex items-center justify-center text-xs font-bold text-white">安</span>
         <span className="font-serif font-semibold text-sm text-white">安心整合</span>
       </div>
 
       {/* Main */}
-      <main className="flex-1 min-w-0 mt-12 lg:mt-0">
+      <main className="flex-1 min-w-0 mt-14 lg:mt-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
