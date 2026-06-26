@@ -82,12 +82,20 @@ function fallbackSceneSuggestions(c: CaseData): string[] {
 }
 
 function fallbackShotCategories(c: CaseData) {
+  const beforeAfterItems = c.beforeAfter === '有'
+    ? [
+        c.beforeAfterNote ? `反差重點：${c.beforeAfterNote}` : 'Before 問題點',
+        'After 改善點',
+        '同角度對比',
+      ]
+    : ['（Before/After 資料不足，建議補充）'];
+
   return {
     mustShoot: (c.mustShoot || '案場全貌、問題區域、施工關鍵節點、完工對比').split(/[，,、\n]/).filter(Boolean).map(s => s.trim()),
     people: [c.designerExplain ? `設計師說明：${c.designerExplain.slice(0, 30)}` : null, c.masterExplain ? `師傅講解：${c.masterExplain.slice(0, 30)}` : null, c.ownerStory ? `屋主訪談：${c.ownerStory.slice(0, 30)}` : null].filter(Boolean) as string[],
     spaces: ['客廳全景', '廚房動線', '主要問題空間', '完工 walkthrough'],
     details: [c.materialColor ? `材質：${c.materialColor}` : null, c.specialCraft ? `工法：${c.specialCraft}` : null, '開關、收納、五金細節'].filter(Boolean) as string[],
-    beforeAfter: c.beforeAfter === '有' ? ['Before 問題點', 'After 改善點', '同角度對比'] : ['（Before/After 資料不足，建議補充）'],
+    beforeAfter: beforeAfterItems,
     construction: [c.masterExplain ? c.masterExplain : null, '防水/管線/結構關鍵節點', '師傅實作手部特寫'].filter(Boolean) as string[],
     gaps: !c.mustShoot ? ['尚未填寫必拍畫面，建議至協作板補充'] : [],
   };

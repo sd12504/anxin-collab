@@ -209,6 +209,12 @@ export default function CollabBoard() {
             <Field label="6. 屋主故事或使用情境" value={current.ownerStory} onChange={v => update({ ownerStory: v })} />
             <Field label="7. 材質與色彩重點" value={current.materialColor} onChange={v => update({ materialColor: v })} />
             <Field label="8. 特殊工法或注意事項" value={current.specialCraft} onChange={v => update({ specialCraft: v })} />
+            <Field
+              label="9. Before / After 反差說明"
+              value={current.beforeAfterNote}
+              onChange={v => update({ beforeAfterNote: v, beforeAfter: v.trim() ? '有' : '普通' })}
+              placeholder="例：拆除前壁癌嚴重、動線卡；完工後採光變好、收納增加、浴室乾濕分離。"
+            />
           </div>
         </Modal>
       )}
@@ -335,11 +341,21 @@ function ProgressBar({ value }: { value: number }) {
   );
 }
 
-function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
   return (
     <label className="block">
       <span className="label">{label}</span>
-      <textarea className="input min-h-[88px]" value={value} onChange={e => onChange(e.target.value)} />
+      <textarea className="input min-h-[88px]" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
     </label>
   );
 }
