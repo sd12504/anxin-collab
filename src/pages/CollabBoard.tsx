@@ -97,20 +97,6 @@ export default function CollabBoard() {
           actionLabel="查看詳情"
           onAction={() => setDetailOpen('case')}
         >
-          <div className="mt-4 aspect-[16/9] overflow-hidden rounded-lg bg-gray-100 relative group/image">
-            {current.coverImage ? (
-              <img src={current.coverImage} alt={`${current.name} 案件預覽`} className="h-full w-full object-cover" />
-            ) : (
-              <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-gray-400 bg-warm-50">
-                <div className="text-sm font-medium">尚未設定圖片</div>
-                <div className="text-xs">上傳後會同步到案件詳情</div>
-              </div>
-            )}
-            <label className="absolute right-3 bottom-3 btn btn-sm bg-white/90 hover:bg-white cursor-pointer">
-              {current.coverImage ? '更換圖片' : '上傳圖片'}
-              <input type="file" accept="image/*" className="hidden" onChange={handleCoverImageChange} />
-            </label>
-          </div>
           <div className="mt-4 flex items-start justify-between gap-3">
             <div>
               <h2 className="font-serif text-lg font-semibold text-gray-900">{current.name}</h2>
