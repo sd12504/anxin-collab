@@ -2,7 +2,10 @@ import pkg from 'pg';
 const { Pool } = pkg;
 
 const HAS_DB = !!process.env.DATABASE_URL;
-const pool = HAS_DB ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
+const pool = HAS_DB ? new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+}) : null;
 const memStore = new Map();
 const userStore = new Map();
 
