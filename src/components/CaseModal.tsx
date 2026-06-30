@@ -26,7 +26,6 @@ export default function CaseModal({ editId, onSave, onClose, saving, saveError }
   const [designer, setDesigner] = useState(existing?.designer || '');
   const [region, setRegion] = useState(existing?.region || '');
   const [area, setArea] = useState(existing?.area || '');
-  const [coverImage, setCoverImage] = useState<string | null>(existing?.coverImage || null);
   const [houseCondition, setHouseCondition] = useState<HouseCondition>(existing?.houseCondition || '中古屋');
   const [designStyle, setDesignStyle] = useState(existing?.designStyle || '');
   const [stage, setStage] = useState<CaseStage>(existing?.stage || '接案');
@@ -38,15 +37,6 @@ export default function CaseModal({ editId, onSave, onClose, saving, saveError }
   const [floorplanVisible, setFloorplanVisible] = useState<Visibility>(existing?.floorplanVisible || '可露出');
   const [otherRestrict, setOtherRestrict] = useState(existing?.otherRestrict || '');
 
-  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setCoverImage(reader.result as string);
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -55,7 +45,7 @@ export default function CaseModal({ editId, onSave, onClose, saving, saveError }
       designer: designer.trim(),
       region: region.trim(),
       area: area.trim(),
-      coverImage,
+      coverImage: existing?.coverImage || null,
       houseCondition,
       designStyle: designStyle.trim(),
       stage,
@@ -99,24 +89,7 @@ export default function CaseModal({ editId, onSave, onClose, saving, saveError }
             <button type="button" className="text-gray-400 hover:text-gray-600 text-2xl leading-none" onClick={onClose}>&times;</button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5 mb-5">
-            <div className="rounded-lg overflow-hidden bg-gray-100 border border-warm-200">
-              <div className="aspect-[4/3] relative">
-                {coverImage ? (
-                  <img src={coverImage} alt={name || '案場圖片'} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-gray-400 bg-warm-50">
-                    <div className="text-sm font-medium">尚未設定圖片</div>
-                    <div className="text-xs">上傳後會同步到協作板</div>
-                  </div>
-                )}
-                <label className="absolute right-3 bottom-3 btn btn-sm bg-white/90 hover:bg-white cursor-pointer">
-                  {coverImage ? '更換圖片' : '上傳圖片'}
-                  <input type="file" accept="image/*" className="hidden" onChange={handleCoverImageChange} />
-                </label>
-              </div>
-            </div>
-
+          <div className="mb-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 content-start">
               <EditableText label="案件名稱" value={name} onChange={setName} required />
               <EditableSelect label="案件階段" value={stage} options={caseStages} onChange={v => setStage(v as CaseStage)} />

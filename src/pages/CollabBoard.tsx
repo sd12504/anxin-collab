@@ -60,15 +60,6 @@ export default function CollabBoard() {
 
   const update = (patch: Partial<CaseData>) => updateCase(current.id, patch);
 
-  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => update({ coverImage: reader.result as string });
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
   return (
     <div className="max-w-screen-2xl mx-auto px-4 lg:px-8 py-6 lg:py-8">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
@@ -138,23 +129,7 @@ export default function CollabBoard() {
             <button className="btn btn-sm" onClick={() => navigate('/cases')}>到案例管理</button>
           }
         >
-          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5 mb-5">
-            <div className="rounded-lg overflow-hidden bg-gray-100 border border-warm-200">
-              <div className="aspect-[4/3] relative">
-                {current.coverImage ? (
-                  <img src={current.coverImage} alt={`${current.name} 案件圖片`} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-gray-400 bg-warm-50">
-                    <div className="text-sm font-medium">尚未設定圖片</div>
-                    <div className="text-xs">上傳後會同步到協作板</div>
-                  </div>
-                )}
-                <label className="absolute right-3 bottom-3 btn btn-sm bg-white/90 hover:bg-white cursor-pointer">
-                  {current.coverImage ? '更換圖片' : '上傳圖片'}
-                  <input type="file" accept="image/*" className="hidden" onChange={handleCoverImageChange} />
-                </label>
-              </div>
-            </div>
+          <div className="mb-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 content-start">
               <EditableText label="案件名稱" value={current.name} onChange={value => update({ name: value })} />
               <EditableSelect label="案件階段" value={current.stage} options={caseStages} onChange={value => update({ stage: value as CaseStage })} />
